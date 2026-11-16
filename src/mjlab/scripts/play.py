@@ -15,7 +15,7 @@ from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.scripts._cli import maybe_print_top_level_help
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
-from mjlab.tasks.tracking.mdp import MotionCommandCfg
+from mjlab.tasks.tracking.mdp import MotionCommandCfg, resolve_motion_file
 from mjlab.utils.os import get_checkpoint_path, get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
@@ -89,7 +89,9 @@ def run_play(task_id: str, cfg: PlayConfig):
     assert isinstance(motion_cmd, MotionCommandCfg)
 
     # Check for local motion file first (works for both dummy and trained modes).
-    if cfg.motion_file is not None and Path(cfg.motion_file).exists():
+    if cfg.motion_file is not None and all(
+      Path(path).exists() for path in resolve_motion_file(cfg.motion_file)
+    ):
       print(f"[INFO]: Using local motion file: {cfg.motion_file}")
       motion_cmd.motion_file = cfg.motion_file
     elif DUMMY_MODE:

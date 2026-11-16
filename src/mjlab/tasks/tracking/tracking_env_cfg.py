@@ -256,6 +256,9 @@ def make_tracking_env_cfg() -> ManagerBasedRlEnvCfg:
 
   terminations: dict[str, TerminationTermCfg] = {
     "time_out": TerminationTermCfg(func=mdp.time_out, time_out=True),
+    "motion_end": TerminationTermCfg(
+      func=mdp.motion_end, time_out=True, params={"command_name": "motion"}
+    ),
     "anchor_pos": TerminationTermCfg(
       func=mdp.bad_anchor_pos_z_only,
       params={"command_name": "motion", "threshold": 0.25},

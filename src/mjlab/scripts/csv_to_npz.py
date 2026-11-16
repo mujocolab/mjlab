@@ -1,5 +1,4 @@
 import math
-from typing import Any
 
 import numpy as np
 import torch
@@ -25,17 +24,18 @@ class MotionLoader:
   def __init__(
     self,
     motion_file: str,
-    input_fps: int,
-    output_fps: int,
+    joint_names: list[str],
+    input_fps: float,
+    output_fps: float,
     device: torch.device | str,
     line_range: tuple[int, int] | None = None,
   ):
     self.motion_file = motion_file
+    self.joint_names = joint_names
     self.input_fps = input_fps
     self.output_fps = output_fps
     self.input_dt = 1.0 / self.input_fps
     self.output_dt = 1.0 / self.output_fps
-    self.current_idx = 0
     self.device = device
     self.line_range = line_range
     self._load_motion()
@@ -54,6 +54,11 @@ class MotionLoader:
           skiprows=self.line_range[0] - 1,
           max_rows=self.line_range[1] - self.line_range[0] + 1,
         )
+      )
+    if motion.shape[1] != 7 + len(self.joint_names):
+      raise ValueError(
+        f"{self.motion_file} has {motion.shape[1]} columns; it needs a base "
+        f"position, a base quaternion and {len(self.joint_names)} joint positions"
       )
     motion = motion.to(torch.float32).to(self.device)
     # motion[:, 2] -= 0.05
@@ -154,191 +159,6 @@ class MotionLoader:
     )  # repeat first and last sample
     return omega
 
-  def get_next_state(
-    self,
-  ) -> tuple[
-    tuple[
-      torch.Tensor,
-      torch.Tensor,
-      torch.Tensor,
-      torch.Tensor,
-      torch.Tensor,
-      torch.Tensor,
-    ],
-    bool,
-  ]:
-    """Gets the next state of the motion."""
-    state = (
-      self.motion_base_poss[self.current_idx : self.current_idx + 1],
-      self.motion_base_rots[self.current_idx : self.current_idx + 1],
-      self.motion_base_lin_vels[self.current_idx : self.current_idx + 1],
-      self.motion_base_ang_vels[self.current_idx : self.current_idx + 1],
-      self.motion_dof_poss[self.current_idx : self.current_idx + 1],
-      self.motion_dof_vels[self.current_idx : self.current_idx + 1],
-    )
-    self.current_idx += 1
-    reset_flag = False
-    if self.current_idx >= self.output_frames:
-      self.current_idx = 0
-      reset_flag = True
-    return state, reset_flag
-
-
-def run_sim(
-  sim: Simulation,
-  scene: Scene,
-  joint_names,
-  input_file,
-  input_fps,
-  output_fps,
-  output_name,
-  render,
-  line_range,
-  renderer: OffscreenRenderer | None = None,
-):
-  motion = MotionLoader(
-    motion_file=input_file,
-    input_fps=input_fps,
-    output_fps=output_fps,
-    device=sim.device,
-    line_range=line_range,
-  )
-
-  robot: Entity = scene["robot"]
-  robot_joint_indexes = robot.find_joints(joint_names, preserve_order=True)[0]
-
-  log: dict[str, Any] = {
-    "fps": [output_fps],
-    "joint_pos": [],
-    "joint_vel": [],
-    "body_pos_w": [],
-    "body_quat_w": [],
-    "body_lin_vel_w": [],
-    "body_ang_vel_w": [],
-  }
-  file_saved = False
-
-  frames = []
-  scene.reset()
-
-  print(f"\nStarting simulation with {motion.output_frames} frames...")
-  if render:
-    print("Rendering enabled - generating video frames...")
-
-  # Create progress bar
-  pbar = tqdm(
-    total=motion.output_frames,
-    desc="Processing frames",
-    unit="frame",
-    ncols=100,
-    bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
-  )
-
-  frame_count = 0
-  while not file_saved:
-    (
-      (
-        motion_base_pos,
-        motion_base_rot,
-        motion_base_lin_vel,
-        motion_base_ang_vel,
-        motion_dof_pos,
-        motion_dof_vel,
-      ),
-      reset_flag,
-    ) = motion.get_next_state()
-
-    root_states = robot.data.default_root_state.clone()
-    root_states[:, 0:3] = motion_base_pos
-    root_states[:, :2] += scene.env_origins[:, :2]
-    root_states[:, 3:7] = motion_base_rot
-    root_states[:, 7:10] = motion_base_lin_vel
-    root_states[:, 10:] = motion_base_ang_vel
-    robot.write_root_state_to_sim(root_states)
-
-    joint_pos = robot.data.default_joint_pos.clone()
-    joint_vel = robot.data.default_joint_vel.clone()
-    joint_pos[:, robot_joint_indexes] = motion_dof_pos
-    joint_vel[:, robot_joint_indexes] = motion_dof_vel
-    robot.write_joint_state_to_sim(joint_pos, joint_vel)
-
-    sim.forward()
-    scene.update(sim.mj_model.opt.timestep)
-    if render and renderer is not None:
-      renderer.update(sim.data)
-      frames.append(renderer.render())
-
-    if not file_saved:
-      log["joint_pos"].append(robot.data.joint_pos[0, :].cpu().numpy().copy())
-      log["joint_vel"].append(robot.data.joint_vel[0, :].cpu().numpy().copy())
-      log["body_pos_w"].append(robot.data.body_link_pos_w[0, :].cpu().numpy().copy())
-      log["body_quat_w"].append(robot.data.body_link_quat_w[0, :].cpu().numpy().copy())
-      log["body_lin_vel_w"].append(
-        robot.data.body_link_lin_vel_w[0, :].cpu().numpy().copy()
-      )
-      log["body_ang_vel_w"].append(
-        robot.data.body_link_ang_vel_w[0, :].cpu().numpy().copy()
-      )
-
-      torch.testing.assert_close(
-        robot.data.body_link_lin_vel_w[0, 0], motion_base_lin_vel[0]
-      )
-      torch.testing.assert_close(
-        robot.data.body_link_ang_vel_w[0, 0], motion_base_ang_vel[0]
-      )
-
-      frame_count += 1
-      pbar.update(1)
-
-      if frame_count % 100 == 0:  # Update every 100 frames to avoid spam
-        elapsed_time = frame_count / output_fps
-        pbar.set_description(f"Processing frames (t={elapsed_time:.1f}s)")
-
-      if reset_flag and not file_saved:
-        file_saved = True
-        pbar.close()
-
-        print("\nStacking arrays and saving data...")
-        for k in (
-          "joint_pos",
-          "joint_vel",
-          "body_pos_w",
-          "body_quat_w",
-          "body_lin_vel_w",
-          "body_ang_vel_w",
-        ):
-          log[k] = np.stack(log[k], axis=0)
-
-        print("Saving to /tmp/motion.npz...")
-        np.savez("/tmp/motion.npz", **log)
-
-        print("Uploading to Weights & Biases...")
-        import wandb
-
-        COLLECTION = output_name
-        run = wandb.init(project="csv_to_npz", name=COLLECTION)
-        print(f"[INFO]: Logging motion to wandb: {COLLECTION}")
-        REGISTRY = "motions"
-        logged_artifact = run.log_artifact(
-          artifact_or_path="/tmp/motion.npz", name=COLLECTION, type=REGISTRY
-        )
-        run.link_artifact(
-          artifact=logged_artifact,
-          target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}",
-        )
-        print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
-
-        if render:
-          import mediapy as media
-
-          print("Creating video...")
-          media.write_video("./motion.mp4", frames, fps=output_fps)
-
-          print("Logging video to wandb...")
-          wandb.log({"motion_video": wandb.Video("./motion.mp4", format="mp4")})
-
-        wandb.finish()
-
 
 def main(
   input_file: str,
@@ -349,7 +169,7 @@ def main(
   render: bool = False,
   line_range: tuple[int, int] | None = None,
 ):
-  """Replay motion from CSV file and output to npz file.
+  """Convert motion from a CSV file to npz.
 
   Args:
     input_file: Path to the input CSV file.
@@ -364,37 +184,8 @@ def main(
     print("[WARNING]: CUDA is not available. Falling back to CPU. This may be slow.")
     device = "cpu"
 
-  sim_cfg = SimulationCfg()
-  sim_cfg.mujoco.timestep = 1.0 / output_fps
-
-  scene = Scene(unitree_g1_flat_tracking_env_cfg().scene, device=device)
-  model = scene.compile()
-
-  sim = Simulation(num_envs=1, cfg=sim_cfg, model=model, device=device)
-
-  scene.initialize(sim.mj_model, sim.model, sim.data)
-
-  renderer = None
-  if render:
-    viewer_cfg = ViewerConfig(
-      height=480,
-      width=640,
-      origin_type=ViewerConfig.OriginType.ASSET_ROOT,
-      entity_name="robot",
-      distance=2.0,
-      elevation=-5.0,
-      azimuth=20,
-    )
-    renderer = OffscreenRenderer(
-      model=sim.mj_model,
-      cfg=viewer_cfg,
-      scene=scene,
-    )
-    renderer.initialize()
-
-  run_sim(
-    sim=sim,
-    scene=scene,
+  motion = MotionLoader(
+    motion_file=input_file,
     joint_names=[
       "left_hip_pitch_joint",
       "left_hip_roll_joint",
@@ -427,13 +218,79 @@ def main(
       "right_wrist_yaw_joint",
     ],
     input_fps=input_fps,
-    input_file=input_file,
     output_fps=output_fps,
-    output_name=output_name,
-    render=render,
     line_range=line_range,
-    renderer=renderer,
+    device=device,
   )
+
+  print("Saving to /tmp/motion.npz...")
+  np.savez(
+    "/tmp/motion.npz",
+    fps=[output_fps],
+    joint_names=motion.joint_names,
+    joint_pos=motion.motion_dof_poss.cpu().numpy(),
+    joint_vel=motion.motion_dof_vels.cpu().numpy(),
+    root_pos_w=motion.motion_base_poss.cpu().numpy(),
+    root_quat_w=motion.motion_base_rots.cpu().numpy(),
+    root_lin_vel_w=motion.motion_base_lin_vels.cpu().numpy(),
+    root_ang_vel_w=motion.motion_base_ang_vels.cpu().numpy(),
+  )
+
+  print("Uploading to Weights & Biases...")
+  import wandb
+
+  COLLECTION = output_name
+  run = wandb.init(project="csv_to_npz", name=COLLECTION)
+  print(f"[INFO]: Logging motion to wandb: {COLLECTION}")
+  REGISTRY = "motions"
+  logged_artifact = run.log_artifact(
+    artifact_or_path="/tmp/motion.npz", name=COLLECTION, type=REGISTRY
+  )
+  run.link_artifact(
+    artifact=logged_artifact,
+    target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}",
+  )
+  print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
+
+  if render:
+    import mediapy as media
+
+    scene = Scene(unitree_g1_flat_tracking_env_cfg().scene, device=device)
+    model = scene.compile()
+    sim = Simulation(num_envs=1, cfg=SimulationCfg(), model=model, device=device)
+    scene.initialize(sim.mj_model, sim.model, sim.data)
+    viewer_cfg = ViewerConfig(
+      height=480,
+      width=640,
+      origin_type=ViewerConfig.OriginType.ASSET_ROOT,
+      entity_name="robot",
+      distance=2.0,
+      elevation=-5.0,
+      azimuth=20,
+    )
+    renderer = OffscreenRenderer(
+      model=sim.mj_model,
+      cfg=viewer_cfg,
+      scene=scene,
+    )
+    renderer.initialize()
+
+    robot: Entity = scene["robot"]
+    root_pose = torch.cat([motion.motion_base_poss, motion.motion_base_rots], dim=1)
+    frames = []
+    for i in tqdm(range(motion.output_frames), desc="Rendering frames"):
+      robot.write_root_link_pose_to_sim(root_pose[i : i + 1])
+      robot.write_joint_position_to_sim(motion.motion_dof_poss[i : i + 1])
+      renderer.update(sim.data)
+      frames.append(renderer.render())
+
+    print("Creating video...")
+    media.write_video("./motion.mp4", frames, fps=output_fps)
+
+    print("Logging video to wandb...")
+    wandb.log({"motion_video": wandb.Video("./motion.mp4", format="mp4")})
+
+  wandb.finish()
 
 
 if __name__ == "__main__":
