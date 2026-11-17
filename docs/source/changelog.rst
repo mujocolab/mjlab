@@ -25,6 +25,8 @@ Added
   fields to the exported ONNX metadata by overriding it, and
   ``MjlabOnPolicyRunner.export_onnx_on_save`` to export ONNX on every checkpoint.
   The velocity, manipulation and tracking runners now share this export path.
+- The Unitree G1 model limits ankle roll and pitch jointly, with fixed tendons that
+  model the coupled mechanical stops of the push-rod ankle.
 
 Changed
 ^^^^^^^
