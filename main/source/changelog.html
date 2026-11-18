@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 15, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 18, 2026"/>
   </head>
   
   
@@ -574,6 +574,8 @@ per-term reward vector from the last step <a class="extlink-issue reference exte
 fields to the exported ONNX metadata by overriding it, and
 <code class="docutils literal notranslate"><span class="pre">MjlabOnPolicyRunner.export_onnx_on_save</span></code> to export ONNX on every checkpoint.
 The velocity, manipulation and tracking runners now share this export path.</p></li>
+<li><p>The Unitree G1 model limits ankle roll and pitch jointly, with fixed tendons that
+model the coupled mechanical stops of the push-rod ankle.</p></li>
 </ul>
 </section>
 <section id="changed">
@@ -1300,9 +1302,9 @@ damping (<code class="docutils literal notranslate"><span class="pre">f</span> <
 used by position and velocity actuators. Maps to <code class="docutils literal notranslate"><span class="pre">&lt;joint</span> <span class="pre">damping&gt;</span></code> for
 JOINT transmission and <code class="docutils literal notranslate"><span class="pre">&lt;tendon</span> <span class="pre">damping&gt;</span></code> for TENDON transmission.
 Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code> (preserves the XML value).</p></li>
-<li><p>Added <code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderManager</span></code> for logging observations,
+<li><p>Added <a class="reference internal" href="api/managers.html#mjlab.managers.RecorderManager" title="mjlab.managers.RecorderManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderManager</span></code></a> for logging observations,
 actions, or arbitrary environment data during rollouts. Implement a
-<code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code> subclass and register it in the
+<a class="reference internal" href="api/managers.html#mjlab.managers.RecorderTerm" title="mjlab.managers.RecorderTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code></a> subclass and register it in the
 <code class="docutils literal notranslate"><span class="pre">recorders</span></code> dict on <code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code>. The manager provides
 <code class="docutils literal notranslate"><span class="pre">record_pre_reset</span></code>, <code class="docutils literal notranslate"><span class="pre">record_post_reset</span></code>, and <code class="docutils literal notranslate"><span class="pre">record_post_step</span></code>
 lifecycle hooks with no opinion on how data is stored.</p></li>
@@ -1902,7 +1904,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 15, 2026.
+  Last updated on Nov 18, 2026.
   <br/>
 </p>
   </div>

@@ -59,7 +59,7 @@
     <link rel="prev" title="Metrics" href="metrics.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 15, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 18, 2026"/>
   </head>
   
   
@@ -534,7 +534,7 @@ buffers here.</p>
 </section>
 <section id="writing-a-recorder-term">
 <h2>Writing a recorder term<a class="headerlink" href="#writing-a-recorder-term" title="Link to this heading">#</a></h2>
-<p>Subclass <code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code> and override whichever
+<p>Subclass <a class="reference internal" href="api/managers.html#mjlab.managers.RecorderTerm" title="mjlab.managers.RecorderTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code></a> and override whichever
 hooks you need. The environment is available as <code class="docutils literal notranslate"><span class="pre">self._env</span></code>, giving
 access to <code class="docutils literal notranslate"><span class="pre">self._env.obs_buf</span></code>, <code class="docutils literal notranslate"><span class="pre">self._env.action_manager.action</span></code>, and
 all other managers.</p>
@@ -590,7 +590,7 @@ put in <code class="docutils literal notranslate"><span class="pre">cfg.params</
 <p>Multiple terms can be registered under different keys and run together.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">func</span></code> must be a <code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code> subclass.
+<p><code class="docutils literal notranslate"><span class="pre">func</span></code> must be a <a class="reference internal" href="api/managers.html#mjlab.managers.RecorderTerm" title="mjlab.managers.RecorderTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code></a> subclass.
 Function-based terms are not supported because recorder terms are
 stateful.</p>
 </div>
@@ -678,7 +678,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 15, 2026.
+  Last updated on Nov 18, 2026.
   <br/>
 </p>
   </div>
