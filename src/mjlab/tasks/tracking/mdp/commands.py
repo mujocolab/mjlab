@@ -212,6 +212,11 @@ class MotionCommand(CommandTerm):
   def robot_anchor_ang_vel_w(self) -> torch.Tensor:
     return self.robot.data.body_link_ang_vel_w[:, self.robot_anchor_body_index]
 
+  @property
+  def yaw_offset_quat_w(self) -> torch.Tensor:
+    """Yaw offset from the reference anchor to the robot anchor."""
+    return yaw_quat(quat_mul(self.robot_anchor_quat_w, quat_inv(self.anchor_quat_w)))
+
   def _update_metrics(self):
     self.metrics["error_anchor_pos"] = torch.norm(
       self.anchor_pos_w - self.robot_anchor_pos_w, dim=-1
@@ -382,29 +387,18 @@ class MotionCommand(CommandTerm):
     Called after ``reset_to_frame`` so that termination checks that
     compare relative body positions see the correct state.
     """
-    anchor_pos_w_repeat = self.anchor_pos_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
-    )
-    anchor_quat_w_repeat = self.anchor_quat_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
-    )
-    robot_anchor_pos_w_repeat = self.robot_anchor_pos_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
-    )
-    robot_anchor_quat_w_repeat = self.robot_anchor_quat_w[:, None, :].repeat(
-      1, len(self.cfg.body_names), 1
+    delta_pos_w = self.robot_anchor_pos_w.clone()
+    delta_pos_w[:, 2] = self.anchor_pos_w[:, 2]
+    yaw = self.yaw_offset_quat_w[:, None].expand(-1, len(self.cfg.body_names), -1)
+    self.body_quat_relative_w = quat_mul(yaw, self.body_quat_w)
+    self.body_pos_relative_w = delta_pos_w[:, None] + quat_apply(
+      yaw, self.body_pos_w - self.anchor_pos_w[:, None]
     )
 
-    delta_pos_w = robot_anchor_pos_w_repeat
-    delta_pos_w[..., 2] = anchor_pos_w_repeat[..., 2]
-    delta_ori_w = yaw_quat(
-      quat_mul(robot_anchor_quat_w_repeat, quat_inv(anchor_quat_w_repeat))
-    )
-
-    self.body_quat_relative_w = quat_mul(delta_ori_w, self.body_quat_w)
-    self.body_pos_relative_w = delta_pos_w + quat_apply(
-      delta_ori_w, self.body_pos_w - anchor_pos_w_repeat
-    )
+  def to_robot_heading(self, vec_w: torch.Tensor) -> torch.Tensor:
+    """Rotate reference body vectors by the yaw offset between the anchors."""
+    yaw = self.yaw_offset_quat_w[:, None].expand(-1, vec_w.shape[1], -1)
+    return quat_apply(yaw, vec_w)
 
   def reset(self, env_ids: torch.Tensor | slice | None) -> dict[str, float]:
     extras = super().reset(env_ids)

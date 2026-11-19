@@ -77,7 +77,7 @@ def motion_relative_body_orientation_error_exp(
   return torch.exp(-error.mean(-1) / std**2)
 
 
-def motion_global_body_linear_velocity_error_exp(
+def motion_relative_body_linear_velocity_error_exp(
   env: ManagerBasedRlEnv,
   command_name: str,
   std: float,
@@ -87,7 +87,7 @@ def motion_global_body_linear_velocity_error_exp(
   body_indexes = _get_body_indexes(command, body_names)
   error = torch.sum(
     torch.square(
-      command.body_lin_vel_w[:, body_indexes]
+      command.to_robot_heading(command.body_lin_vel_w[:, body_indexes])
       - command.robot_body_lin_vel_w[:, body_indexes]
     ),
     dim=-1,
@@ -95,7 +95,7 @@ def motion_global_body_linear_velocity_error_exp(
   return torch.exp(-error.mean(-1) / std**2)
 
 
-def motion_global_body_angular_velocity_error_exp(
+def motion_relative_body_angular_velocity_error_exp(
   env: ManagerBasedRlEnv,
   command_name: str,
   std: float,
@@ -105,7 +105,7 @@ def motion_global_body_angular_velocity_error_exp(
   body_indexes = _get_body_indexes(command, body_names)
   error = torch.sum(
     torch.square(
-      command.body_ang_vel_w[:, body_indexes]
+      command.to_robot_heading(command.body_ang_vel_w[:, body_indexes])
       - command.robot_body_ang_vel_w[:, body_indexes]
     ),
     dim=-1,
