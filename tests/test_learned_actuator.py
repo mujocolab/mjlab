@@ -342,6 +342,18 @@ def test_learned_mlp_reset_clears_history(device, identity_network_file):
   assert actuator._vel_history.current_length[0] == 0
   assert actuator._vel_history.current_length[1] > 0
 
+  # Reinitializing env 0 must not append a frame to env 1's learned histories.
+  histories = (actuator._pos_error_history, actuator._vel_history)
+  before = [history.buffer[1].clone() for history in histories]
+  ctrl = sim.data.ctrl[1].clone()
+  entity.set_joint_position_target(torch.full((2, 1), 2.0, device=device))
+  entity.write_joint_state_to_sim(joint_pos, torch.full_like(joint_vel, 3.0))
+  entity.write_data_to_sim(torch.tensor([0], device=device))
+  for history, expected in zip(histories, before, strict=True):
+    assert torch.equal(history.buffer[1], expected)
+    assert history.current_length.tolist() == [1, 1]
+  assert torch.equal(sim.data.ctrl[1], ctrl)
+
 
 def test_learned_mlp_inherits_dc_motor_limits(device, constant_network_file):
   """Test that DC motor saturation_effort and velocity limits apply."""

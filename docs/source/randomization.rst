@@ -32,7 +32,7 @@ Use an ``EventTermCfg`` that calls a typed function from ``dr`` with a
 
 Each ``dr`` function is decorated with ``@requires_model_fields`` which
 automatically tracks the fields that need to be expanded for per-world
-storage **and** the ``RecomputeLevel`` needed to keep
+storage **and** the ``set_const`` groups needed to keep
 :ref:`derived quantities <dr-recomputation>` consistent.
 
 The ``mode`` parameter controls when the event fires:
@@ -105,20 +105,19 @@ and ``dr.body_ipos`` are the same function).
    * - ``dr.body_mass``
      - ``body_mass``
      - Mass of the body
-     - Triggers ``set_const`` recomputation
+     -
    * - ``dr.body_com_offset`` (alias ``body_ipos``)
      - ``body_ipos``
      - Center of mass position relative to the body frame
-     - Triggers ``set_const``
+     -
    * - ``dr.body_pos``
      - ``body_pos``
      - Position of the body frame in the parent frame
-     - Triggers ``set_const_0``
+     -
    * - ``dr.body_quat``
      - ``body_quat``
      - Orientation of the body frame
-     - Accepts roll/pitch/yaw ranges (radians); composes with default;
-       triggers ``set_const_0``
+     - Accepts roll/pitch/yaw ranges (radians); composes with default
 
 .. rubric:: Joint fields
 
@@ -137,7 +136,7 @@ and ``dr.body_ipos`` are the same function).
    * - ``dr.joint_armature`` (alias ``dof_armature``)
      - ``dof_armature``
      - Added rotor inertia (models geared transmissions)
-     - Triggers ``set_const_0``
+     -
    * - ``dr.joint_friction`` (alias ``dof_frictionloss``)
      - ``dof_frictionloss``
      - Dry friction loss in the joint
@@ -153,7 +152,7 @@ and ``dr.body_ipos`` are the same function).
    * - ``dr.joint_default_pos`` (alias ``qpos0``)
      - ``qpos0``
      - Reference joint position (zero-spring equilibrium)
-     - Triggers ``set_const_0``
+     -
 
 .. rubric:: Site fields
 
@@ -325,7 +324,7 @@ and ``dr.body_ipos`` are the same function).
    * - ``dr.tendon_armature``
      - ``tendon_armature``
      - Inertia associated with tendon velocity
-     - Triggers ``set_const_0``
+     -
 
 Entity-level functions
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -512,7 +511,7 @@ that compares to C MuJoCo.
    * - ``body_pos``, ``body_quat``
      - Safe with ``mj_setConst``, but **unsafe for static bodies**
        (invalidates midphase BVH)
-     - **Safe** with ``set_const_0``
+     - **Safe** with ``KIN0 | INERT0``
      - No collision BVH to invalidate (see above). Body FK runs for
        all bodies regardless of ``body_treeid``. See the
        :ref:`static-body caveat <dr-static-body-caveat>` below.
@@ -530,15 +529,16 @@ that compares to C MuJoCo.
        :ref:`static-body caveat <dr-static-body-caveat>` below.
    * - ``geom_size``
      - **Unsafe**
-     - **Safe** (recomputes bounds automatically)
-     - ``dr.geom_size`` recomputes ``geom_rbound`` and ``geom_aabb``
-       inline after writing new sizes. Only primitive types (sphere,
-       capsule, ellipsoid, cylinder, box) are supported.
+     - **Safe** with ``FIXED``
+     - ``set_const`` recomputes ``geom_rbound`` and ``geom_aabb`` from
+       the new sizes, and tendon rest lengths when spatial tendons
+       exist. ``dr.geom_size`` supports only primitive types (sphere,
+       capsule, ellipsoid, cylinder, box).
    * - ``geom_rbound``, ``geom_aabb``
      - **Unsafe** (internal derived quantities)
      - **Not randomized** (derived)
-     - Broadphase acceleration data. Only set once during model
-       loading. Would need recomputation if ``geom_size`` changes.
+     - Broadphase acceleration data, recomputed by ``FIXED`` when
+       ``geom_size`` changes.
    * - ``geom_friction``, ``geom_rgba``
      - Safe
      - **Safe**
@@ -546,7 +546,7 @@ that compares to C MuJoCo.
        step.
    * - ``dof_armature``
      - Safe with ``mj_setConst``
-     - **Safe** with ``set_const_0``
+     - **Safe** with ``INERT0``
      - Same approach.
    * - ``dof_damping``, ``dof_frictionloss``, ``jnt_stiffness``,
        ``jnt_range``
@@ -555,7 +555,7 @@ that compares to C MuJoCo.
      - No derived quantities.
    * - ``qpos0``
      - Safe with ``mj_setConst``
-     - **Safe** with ``set_const_0``
+     - **Safe** with ``KIN0 | INERT0``
      - Same approach.
    * - ``tendon_stiffness``, ``tendon_damping``, ``tendon_frictionloss``
      - Mostly safe (``mj_setConst`` if changing from/to zero)
@@ -564,7 +564,7 @@ that compares to C MuJoCo.
        zero/non-zero transition special in C MuJoCo.
    * - ``tendon_armature``
      - Safe with ``mj_setConst``
-     - **Safe** with ``set_const_0``
+     - **Safe** with ``INERT0``
      - Contributes to the mass matrix via ``smooth.tendon_armature()``.
        Same approach as ``dof_armature``.
    * - ``actuator_gainprm``, ``actuator_biasprm``
@@ -574,8 +574,8 @@ that compares to C MuJoCo.
    * - ``site_pos``, ``site_quat``
      - Mostly safe (``mj_setConst`` for tracking cameras/lights)
      - **Safe**
-     - Sites are recomputed via FK. No tracking camera concern in
-       typical RL usage.
+     - Sites are recomputed via FK. When spatial tendons exist,
+       ``site_pos`` also recomputes their rest lengths.
    * - ``bvh_aabb``, ``oct_aabb``, ``oct_coeff``
      - **Unsafe**
      - Not applicable / not randomized
@@ -613,37 +613,10 @@ the broadphase reads every step:
 - ``geom_rbound``: bounding sphere radius (used for sphere-filter pruning)
 - ``geom_aabb``: local axis-aligned bounding box (used for AABB/OBB pruning)
 
-Both are copied from ``MjModel`` during model loading and never recomputed
-by MuJoCo Warp. ``dr.geom_size`` handles this by recomputing both fields
-inline (pure PyTorch, no Warp kernel needed) after writing the new sizes.
-
-The formulas are type-dependent:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 18 30 30
-
-   * - Geom type
-     - ``geom_rbound``
-     - ``geom_aabb`` half-size
-   * - Sphere
-     - ``s[0]``
-     - ``(s[0], s[0], s[0])``
-   * - Capsule
-     - ``s[0] + s[1]``
-     - ``(s[0], s[0], s[0] + s[1])``
-   * - Cylinder
-     - ``sqrt(s[0]² + s[1]²)``
-     - ``(s[0], s[0], s[1])``
-   * - Ellipsoid
-     - ``max(s[0], s[1], s[2])``
-     - ``(s[0], s[1], s[2])``
-   * - Box
-     - ``sqrt(s[0]² + s[1]² + s[2]²)``
-     - ``(s[0], s[1], s[2])``
-
-Plane, heightfield, mesh, and SDF geoms are not supported because their bounds
-come from vertex data or are infinite, not derivable from ``geom_size``.
+After ``dr.geom_size`` fires, the ``EventManager`` runs ``set_const``, which
+recomputes both from the new sizes. Plane, heightfield, mesh, and SDF geoms are
+not supported because their bounds come from vertex data or are infinite, not from
+``geom_size``.
 
 
 .. _dr-pair-friction:
@@ -783,7 +756,7 @@ do not have one yet. They will be added as demand arises.
      - Notes
    * - Body
      - ``body_gravcomp``
-     - Gravity compensation weight. Needs ``set_const_fixed``.
+     - Gravity compensation weight. Needs no recomputation.
    * - Joint / DOF
      - ``jnt_margin``
      - Distance threshold for joint-limit detection.
@@ -1248,7 +1221,7 @@ mjlab does not do this for two reasons:
 
 Instead, mjlab modifies the expanded arrays in place on the GPU and selectively
 recompute only the derived quantities that depend on what changed. This is
-what the ``RecomputeLevel`` system handles.
+what the ``set_const`` groups handle.
 
 .. _dr-recomputation:
 
@@ -1263,38 +1236,68 @@ and the simulation will be subtly wrong.
 
 In C MuJoCo, the solution is to call `mj_setConst
 <https://mujoco.readthedocs.io/en/latest/programming/simulation.html#mjmodel-changes>`_
-after modifying model parameters at runtime. MuJoCo Warp provides an equivalent
-set of functions (``set_const``, ``set_const_0``, ``set_const_fixed``) that run
-on the GPU and operate on all worlds in parallel. mjlab calls these
+after modifying model parameters at runtime. MuJoCo Warp provides ``set_const``,
+which runs on the GPU for all worlds in parallel and takes a
+``mujoco_warp.SetConstGroup`` bitmask selecting what to recompute. mjlab calls it
 automatically.
 
-The three recomputation levels, from cheapest to most expensive:
+Each group recomputes a set of derived fields:
 
 .. list-table::
    :header-rows: 1
-   :widths: 25 35 40
+   :widths: 15 85
 
-   * - Level
+   * - Group
      - What it recomputes
-     - When to use
-   * - ``set_const_fixed``
-     - ``body_subtreemass``
-     - After changing ``body_gravcomp``
-   * - ``set_const_0``
-     - ``dof_invweight0``, ``body_invweight0``, ``tendon_length0``,
-       ``tendon_invweight0``, ``actuator_acc0``, plus camera and light
-       references
-     - After changing ``dof_armature``, ``tendon_armature``,
-       ``body_inertia``, ``body_pos``, ``body_quat``, or ``qpos0``
-   * - ``set_const``
-     - Everything above
-     - After changing ``body_mass`` or ``body_ipos`` (center of mass)
+   * - ``FIXED``
+     - ``body_subtreemass``, ``geom_rbound``, ``geom_aabb``, and ``geom_size`` of
+       heightfields
+   * - ``KIN0``
+     - ``tendon_length0``, ``eq_data`` (connect and weld anchors), and the
+       reference poses of tracking cameras and lights
+   * - ``INERT0``
+     - ``dof_invweight0``, ``body_invweight0``, ``tendon_invweight0``,
+       ``actuator_acc0``
 
-The built-in ``dr`` functions already declare the correct level. When the
-``EventManager`` fires multiple DR terms in a single ``apply()`` call, it
-tracks the strongest level among them and calls ``sim.recompute_constants()``
-once at the end. Manual calls are unnecessary unless writing
-custom DR logic.
+The groups to run follow from the fields a DR term modifies. mjlab's mapping
+extends the one documented by ``mujoco_warp.set_const``, and its tests check it
+against recompiling the modified ``MjSpec`` with MuJoCo:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 60 40
+
+   * - Modified field
+     - Groups
+   * - ``body_mass``
+     - ``ALL``
+   * - ``body_pos``, ``body_quat``, ``body_ipos``, ``jnt_pos``, ``jnt_axis``,
+       ``qpos0``
+     - ``KIN0 | INERT0``
+   * - ``eq_data``
+     - ``KIN0``
+   * - ``body_inertia``, ``body_iquat``, ``dof_armature``, ``tendon_armature``,
+       ``actuator_armature``, ``actuator_gear``
+     - ``INERT0``
+   * - ``geom_size``
+     - ``FIXED``
+
+Some fields only need recomputation when the model uses what they affect:
+
+- ``cam_pos`` and ``cam_quat`` need ``KIN0`` when the model has tracking cameras,
+  and ``light_pos`` and ``light_dir`` when it has tracking lights.
+- ``geom_size``, ``geom_pos``, ``geom_quat``, and ``site_pos`` need
+  ``KIN0 | INERT0`` when the model has spatial tendons, whose paths set tendon rest
+  lengths and inverse weights.
+- ``site_pos`` and ``site_quat`` need ``INERT0`` when the model has site
+  transmission actuators, which set ``actuator_acc0``.
+
+DR terms only list the fields they modify with ``@requires_model_fields``. The
+``EventManager`` infers the groups, expands the fields those groups write per world
+so every world keeps its own values, and after an ``apply()`` call runs
+``sim.recompute_constants()`` once with the groups of every term that fired. A
+custom term that modifies a field outside this mapping and needs recomputation can
+call ``sim.recompute_constants()`` itself.
 
 Fields that only affect contact or joint behavior directly (``geom_friction``,
 ``dof_damping``, ``dof_frictionloss``, etc.) have no derived quantities and

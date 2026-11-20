@@ -51,8 +51,8 @@ class EntityData:
   default_joint_vel: torch.Tensor
 
   default_joint_pos_limits: torch.Tensor
-  joint_pos_limits: torch.Tensor
-  soft_joint_pos_limits: torch.Tensor
+  joint_unlimited: torch.Tensor
+  soft_joint_pos_limit_factor: float
 
   gravity_vec_w: torch.Tensor
   forward_vec_b: torch.Tensor
@@ -400,6 +400,36 @@ class EntityData:
   def joint_acc(self) -> torch.Tensor:
     """Joint accelerations. Shape (num_envs, nv)."""
     return self.data.qacc[:, self.indexing.joint_v_adr]
+
+  @property
+  def joint_pos_limits(self) -> torch.Tensor:
+    """Joint position limits, read from the model so they follow domain
+    randomization. Unlimited joints are [-inf, inf]. Shape (num_envs, num_joints, 2).
+    """
+    return self._unlimited_to_inf(self._jnt_range)
+
+  @property
+  def soft_joint_pos_limits(self) -> torch.Tensor:
+    """Joint position limits scaled about their midpoint by the soft limit factor.
+    Shape (num_envs, num_joints, 2)."""
+    limits = self._jnt_range
+    mean = limits.mean(dim=-1, keepdim=True)
+    soft = mean + (limits - mean) * self.soft_joint_pos_limit_factor
+    return self._unlimited_to_inf(soft)
+
+  @property
+  def _jnt_range(self) -> torch.Tensor:
+    # A model without joints has an empty jnt_range that Warp can't convert.
+    if not self.is_articulated:
+      return self.default_joint_pos_limits
+    return self.model.jnt_range[:, self.indexing.joint_ids]
+
+  def _unlimited_to_inf(self, limits: torch.Tensor) -> torch.Tensor:
+    # Unlimited joints have jnt_range [0, 0] in MuJoCo; widen them so clamps are
+    # no-ops.
+    lower = limits[..., 0].masked_fill(self.joint_unlimited, -torch.inf)
+    upper = limits[..., 1].masked_fill(self.joint_unlimited, torch.inf)
+    return torch.stack((lower, upper), dim=-1)
 
   # Tendon properties
 

@@ -79,7 +79,7 @@ def test_attach_metadata_to_onnx():
       "joint_damping": [1.0, 1.0],
       "extra_field": "extra_value",
     }
-    attach_metadata_to_onnx(onnx_path, metadata)
+    attach_metadata_to_onnx(onnx_path, metadata)  # ty: ignore[invalid-argument-type]
 
     # Load and verify metadata was attached.
     loaded_model = onnx.load(onnx_path)
@@ -133,7 +133,7 @@ def test_attach_metadata_to_onnx_nested_clip_and_scale():
       ],
       "observation_terms_scale": [1.0, [0.5, 1.2, 0.3], 2.0],
     }
-    attach_metadata_to_onnx(onnx_path, metadata)
+    attach_metadata_to_onnx(onnx_path, metadata)  # ty: ignore[invalid-argument-type]
 
     loaded_model = onnx.load(onnx_path)
     metadata_props = {prop.key: prop.value for prop in loaded_model.metadata_props}

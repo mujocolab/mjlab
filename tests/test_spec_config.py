@@ -541,6 +541,19 @@ def test_material_cfg_geom_assignment():
   assert spec.geom("arm_collision").material == ""
 
 
+def test_material_cfg_unnamed_geoms():
+  """MaterialCfg should update every matching geom, including unnamed ones."""
+  spec = mujoco.MjSpec()
+  body = spec.worldbody.add_body(name="test_body")
+  for _ in range(3):
+    body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.1, 0.1, 0.1])
+
+  mat_cfg = MaterialCfg(name="my_mat", geom_names_expr=(".*",))
+  mat_cfg.edit_spec(spec)
+
+  assert [g.material for g in spec.geoms] == ["my_mat", "my_mat", "my_mat"]
+
+
 def test_geom_group_basic(multi_geom_spec):
   """GeomCfg should set the group of matching geoms."""
   group_cfg = GeomCfg(

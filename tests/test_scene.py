@@ -13,6 +13,7 @@ from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
 from mjlab.sim.sim_data import WarpBridge
+from mjlab.terrains import TerrainEntityCfg
 
 # ============================================================================
 # Fixtures
@@ -113,7 +114,7 @@ def initialized_scene(scene_with_entities_cfg, device):
   wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
   wp_data = WarpBridge(wp_data)
 
-  scene.initialize(model, wp_model, wp_data)  # type: ignore
+  scene.initialize(model, wp_model, wp_data)  # ty: ignore[invalid-argument-type]
   return scene, wp_data
 
 
@@ -383,7 +384,7 @@ def test_full_scene_lifecycle(robot_entity_cfg, device, tmp_path):
   wp_model = WarpBridge(wp_model, nworld=scene.num_envs)
   wp_data = WarpBridge(wp_data)
 
-  scene.initialize(model, wp_model, wp_data)  # type: ignore
+  scene.initialize(model, wp_model, wp_data)  # ty: ignore[invalid-argument-type]
 
   scene.reset()
   scene.update(0.01)
@@ -620,3 +621,21 @@ def test_entity_with_option_flags_warns(device):
   )
   with pytest.warns(UserWarning, match="disableflags"):
     Scene(cfg, device)
+
+
+def test_terrain_indexing_with_spec_fn_geom(device):
+  """Geoms that spec_fn adds before the terrain do not shift its geom ids."""
+
+  def add_marker(spec: mujoco.MjSpec) -> None:
+    spec.worldbody.add_geom(
+      name="marker", type=mujoco.mjtGeom.mjGEOM_SPHERE, size=[0.1, 0, 0]
+    )
+
+  cfg = SceneCfg(terrain=TerrainEntityCfg(terrain_type="plane"), spec_fn=add_marker)
+  scene = Scene(cfg, device)
+  model = scene.compile()
+  sim = Simulation(num_envs=1, cfg=SimulationCfg(), model=model, device=device)
+  scene.initialize(model, sim.model, sim.data)
+
+  geom_ids = scene["terrain"].indexing.geom_ids.tolist()
+  assert [model.geom(i).name for i in geom_ids] == ["terrain"]

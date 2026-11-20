@@ -245,7 +245,7 @@ def test_posture_std_follows_asset_cfg_joint_order(device):
   asset_cfg = SceneEntityCfg(
     "robot", joint_names=("passive_joint", "actuated_joint1"), preserve_order=True
   )
-  asset_cfg.resolve(env.scene)
+  asset_cfg.resolve(env.scene)  # ty: ignore[invalid-argument-type]
   std = {"actuated_joint1": 0.1, "passive_joint": 10.0}
   cfg = RewardTermCfg(
     func=posture, weight=1.0, params={"asset_cfg": asset_cfg, "std": std}

@@ -6,6 +6,10 @@ import sphinx_book_theme
 sys.path.insert(0, os.path.abspath("../src"))
 sys.path.insert(0, os.path.abspath("../src/mjlab"))
 
+# mjlab defaults MUJOCO_GL to egl on Linux, which fails to import on machines
+# without libEGL (e.g. CI runners) and breaks autodoc. Docs never render.
+os.environ.setdefault("MUJOCO_GL", "disable")
+
 
 project = "mjlab"
 copyright = "2025, The mjlab Developers"
@@ -93,7 +97,6 @@ autodoc_mock_imports = [
   "matplotlib",
   "scipy",
   "carb",
-  "warp",
   "pxr",
   "h5py",
   "hid",
@@ -103,7 +106,6 @@ autodoc_mock_imports = [
   "trimesh",
   "toml",
   "mjviser",
-  "mujoco_warp",
   "gymnasium",
   "rsl_rl",
   "viser",

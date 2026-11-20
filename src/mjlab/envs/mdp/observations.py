@@ -111,12 +111,11 @@ def projected_gravity_from_sensor(
 ) -> torch.Tensor:
   """Projected gravity from a ``framezaxis`` up-vector sensor.
 
-  The sensor is expected to output the world Z-axis expressed in the sensor's frame
-  (e.g. ``framezaxis`` with ``objtype=body objname=world`` and ``reftype=site``). That
-  is the body-frame "up" vector, so it is negated to point along gravity.
+  The sensor must output the world Z-axis expressed in the sensor's frame
+  (e.g. ``framezaxis`` with ``objtype=body objname=world`` and ``reftype=site``).
+  Negating its output gives projected gravity only for gravity along world -Z.
 
-  Unlike :func:`projected_gravity`, which uses the root body orientation, this reads
-  the sensor's site frame and therefore reflects IMU site pose randomization.
+  Uses the sensor's site frame, including IMU site pose randomization.
   """
   sensor = env.scene[sensor_name]
   assert isinstance(sensor, BuiltinSensor)

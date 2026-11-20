@@ -124,6 +124,9 @@ Some commonly used top-level flags:
     uv run play Mjlab-Velocity-Flat-Unitree-G1 \
         --checkpoint-file logs/rsl_rl/g1_velocity/2025-01-27_14-30-00/model_1000.pt
 
+    # From the last checkpoint of the newest local run.
+    uv run play Mjlab-Velocity-Flat-Unitree-G1 --checkpoint-file latest
+
 Key ``play`` arguments:
 
 ``--agent``
@@ -225,8 +228,8 @@ Training artifacts are written to:
             env.yaml              # full environment config
             agent.yaml            # full runner config
 
-Checkpoints are saved every ``save_interval`` iterations and uploaded to W&B
-as model artifacts by default. Set ``upload_model=False`` in the runner
+Checkpoints are saved every ``save_interval`` iterations and uploaded through
+the log writer (W&B by default). Set ``upload_model=False`` in the runner
 config to disable uploads while keeping metric logging.
 
 .. rubric:: Resuming from a checkpoint

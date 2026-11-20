@@ -7,8 +7,7 @@
 # 1. Make changes.
 
 # 2. Type check.
-uv run ty check  # Fast
-uv run pyright  # More thorough, but slower
+uv run ty check
 
 # 3. Run tests.
 uv run pytest tests/  # Single suite

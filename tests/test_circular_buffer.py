@@ -249,10 +249,17 @@ def test_backfill_only_touches_given_rows(device):
   assert buffer.current_length.tolist() == [3, 2, 3]
 
 
-def test_backfill_uninitialized_raises(device):
+def test_backfill_initializes_only_selected_rows(device):
   buffer = CircularBuffer(max_len=2, batch_size=2, device=device)
-  with pytest.raises(RuntimeError, match="not initialized"):
-    buffer.backfill(torch.zeros(2, 1, device=device), torch.tensor([0], device=device))
+  data = torch.tensor([[5.0], [10.0]], device=device)
+  buffer.backfill(data, torch.tensor([0], device=device))
+  assert buffer.current_length.tolist() == [1, 0]
+  assert buffer.buffer.tolist() == [[[5.0], [5.0]], [[0.0], [0.0]]]
+  assert buffer[0].flatten().tolist() == [5.0, 0.0]
+
+  buffer.append(data + 1)
+  assert buffer.current_length.tolist() == [2, 1]
+  assert buffer.buffer.tolist() == [[[5.0], [6.0]], [[11.0], [11.0]]]
 
 
 def test_getitem_lag_clamps_to_oldest_after_wrap(device):

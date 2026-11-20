@@ -8,10 +8,6 @@ from rsl_rl.utils import WandbLogWriter
 from torch import nn
 
 from mjlab.rl import RslRlVecEnvWrapper
-from mjlab.rl.exporter_utils import (
-  attach_metadata_to_onnx,
-  get_base_metadata,
-)
 from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.tasks.tracking.mdp import MotionCommand
 
@@ -19,16 +15,23 @@ from mjlab.tasks.tracking.mdp import MotionCommand
 class _OnnxMotionModel(nn.Module):
   """ONNX-exportable model that wraps the policy and bundles motion reference data."""
 
+  joint_pos: torch.Tensor
+  joint_vel: torch.Tensor
+  body_pos_w: torch.Tensor
+  body_quat_w: torch.Tensor
+  body_lin_vel_w: torch.Tensor
+  body_ang_vel_w: torch.Tensor
+
   def __init__(self, actor, motion):
     super().__init__()
-    self.policy = actor.as_onnx(verbose=False)
+    self.policy = actor.as_onnx()
     self.register_buffer("joint_pos", motion.joint_pos.to("cpu"))
     self.register_buffer("joint_vel", motion.joint_vel.to("cpu"))
     self.register_buffer("body_pos_w", motion.body_pos_w.to("cpu"))
     self.register_buffer("body_quat_w", motion.body_quat_w.to("cpu"))
     self.register_buffer("body_lin_vel_w", motion.body_lin_vel_w.to("cpu"))
     self.register_buffer("body_ang_vel_w", motion.body_ang_vel_w.to("cpu"))
-    self.time_step_total: int = self.joint_pos.shape[0]  # type: ignore[index]
+    self.time_step_total: int = self.joint_pos.shape[0]
 
   def forward(self, x, time_step):
     time_step_clamped = torch.clamp(
@@ -36,17 +39,18 @@ class _OnnxMotionModel(nn.Module):
     )
     return (
       self.policy(x),
-      self.joint_pos[time_step_clamped],  # type: ignore[index]
-      self.joint_vel[time_step_clamped],  # type: ignore[index]
-      self.body_pos_w[time_step_clamped],  # type: ignore[index]
-      self.body_quat_w[time_step_clamped],  # type: ignore[index]
-      self.body_lin_vel_w[time_step_clamped],  # type: ignore[index]
-      self.body_ang_vel_w[time_step_clamped],  # type: ignore[index]
+      self.joint_pos[time_step_clamped],
+      self.joint_vel[time_step_clamped],
+      self.body_pos_w[time_step_clamped],
+      self.body_quat_w[time_step_clamped],
+      self.body_lin_vel_w[time_step_clamped],
+      self.body_ang_vel_w[time_step_clamped],
     )
 
 
 class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
   env: RslRlVecEnvWrapper
+  export_onnx_on_save = True
 
   def __init__(
     self,
@@ -90,28 +94,22 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
       dynamo=False,
     )
 
+  def get_export_metadata(self, run_name: str) -> dict[str, list | str | float]:
+    metadata = super().get_export_metadata(run_name)
+    motion_term = cast(
+      MotionCommand, self.env.unwrapped.command_manager.get_term("motion")
+    )
+    metadata["anchor_body_name"] = motion_term.cfg.anchor_body_name
+    metadata["body_names"] = list(motion_term.cfg.body_names)
+    return metadata
+
   def save(self, path: str, infos=None):
     super().save(path, infos)
-    policy_dir, filename, onnx_path = self._get_export_paths(path)
-    try:
-      self.export_policy_to_onnx(str(policy_dir), filename)
-      is_wandb = isinstance(self.logger.writer, WandbLogWriter)
-      run_name: str = wandb.run.name if is_wandb and wandb.run else "local"  # type: ignore[assignment]
-      metadata = get_base_metadata(self.env.unwrapped, run_name)
-      motion_term = cast(
-        MotionCommand, self.env.unwrapped.command_manager.get_term("motion")
-      )
-      metadata.update(
-        {
-          "anchor_body_name": motion_term.cfg.anchor_body_name,
-          "body_names": list(motion_term.cfg.body_names),
-        }
-      )
-      attach_metadata_to_onnx(str(onnx_path), metadata)
-      if is_wandb and self.cfg["upload_model"]:
-        wandb.save(str(onnx_path), base_path=str(policy_dir))
-        if self.registry_name is not None:
-          wandb.run.use_artifact(self.registry_name)  # type: ignore
-          self.registry_name = None
-    except Exception as e:
-      print(f"[WARN] ONNX export failed (training continues): {e}")
+    # LogWriter has no hook for linking an input artifact, so this stays W&B-only.
+    uploaded = (
+      isinstance(self.logger.writer, WandbLogWriter) and self.cfg["upload_model"]
+    )
+    if uploaded and self.registry_name is not None:
+      assert wandb.run is not None
+      wandb.run.use_artifact(self.registry_name)
+      self.registry_name = None

@@ -8,6 +8,8 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
+  local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
 - ``GridPatternCfg.resolution`` accepts a per-axis ``(x, y)`` tuple.
 - Added a ``cu126`` extra (``uv sync --extra cu126``) that installs torch built for
@@ -15,14 +17,38 @@ Added
   kernels for Blackwell GPUs.
 - Added ``SimulationCfg.graph_conditional`` to toggle MuJoCo Warp's CUDA graph
   conditional nodes, which require CUDA 12.4 or newer.
+- ``RslRlBaseRunnerCfg.logger`` accepts the import path of an
+  ``rsl_rl.utils.LogWriter`` subclass, e.g. ``"my_pkg.writers:MyLogWriter"``.
 - Added ``RewardManager.term_rewards`` and ``RewardManager.get_term()`` for the
   per-term reward vector from the last step :issue:`1223`.
+- Added ``MjlabOnPolicyRunner.get_export_metadata()`` so custom runners can add
+  fields to the exported ONNX metadata by overriding it, and
+  ``MjlabOnPolicyRunner.export_onnx_on_save`` to export ONNX on every checkpoint.
+  The velocity, manipulation and tracking runners now share this export path.
+- The Unitree G1 model limits ankle roll and pitch jointly, with fixed tendons that
+  model the coupled mechanical stops of the push-rod ankle.
 
 Changed
 ^^^^^^^
 
 - ``EntityData`` position accessors read positions directly, avoiding unused
   quaternion calculations and full-pose allocations.
+- Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on ``mujoco-core``
+  instead of ``mujoco``. To upgrade an existing environment, run
+  ``uv sync --reinstall-package mujoco-core``: removing ``mujoco`` deletes files that
+  ``mujoco-core`` shares with it.
+- ``requires_model_fields`` no longer takes ``recompute``: the event manager infers
+  which derived constants to recompute from the listed fields, using MuJoCo Warp's
+  ``set_const`` groups. ``RecomputeLevel`` is removed, and
+  ``sim.recompute_constants()`` takes ``mujoco_warp.SetConstGroup`` flags.
+- ``dr.geom_size`` now recomputes broadphase bounds with ``set_const`` after the event
+  fires. Calling it directly no longer updates ``geom_rbound`` and ``geom_aabb``.
+- Regex keys in ``init_state.joint_pos``/``joint_vel``, ``posture_target`` and spec
+  config ``*_names_expr`` fields now match whole names, so ``"joint1"`` no longer
+  matches ``joint10``. Keys in ``joint_pos``, ``joint_vel`` or ``posture_target`` that
+  match no joint now raise. Contribution by @saikishor.
+- Tracking body velocity rewards rotate the reference by the anchor yaw offset and
+  are renamed from ``motion_global_body_*`` to ``motion_relative_body_*``.
 - Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
   expects. Non-square sub-terrains are no longer stretched with flat patches off the
   terrain; square ones are mirrored across x=y for a given seed.
@@ -33,6 +59,8 @@ Changed
 - ``BuiltinDcMotorActuatorCfg`` PID gains are now in torque space, following
   MuJoCo 3.14. VELOCITY mode requires ``damping > 0`` and ``stiffness = 0``, and
   VOLTAGE mode rejects ``voltage_limit`` and ``slew_rate``.
+- Task runners upload exported ONNX policies through the log writer instead of
+  ``wandb.save``, and name the run in the ONNX metadata after the log directory.
 - Bumped ``rsl-rl-lib`` from 5.5.0 to 5.5.1. This removes the need for capping
   ``wandb`` below 0.29.
 
@@ -43,6 +71,35 @@ Changed
 Fixed
 ^^^^^
 
+- YAM RGB and depth cube-lifting tasks now use separate experiment directories,
+  ``yam_lift_cube_rgb`` and ``yam_lift_cube_depth``.
+- ``EntityData.gravity_vec_w`` now initializes from normalized model gravity, so
+  orientation observations, rewards, and terminations respect tilted gravity
+  :issue:`1318`.
+- Domain randomization of body poses, centers of mass, masses and ``qpos0`` now keeps
+  equality constraint anchors (``eq_data``) and tracking camera and light references
+  per world. Previously every world used world 0's values.
+- Randomizing ``geom_size``, ``geom_pos``, ``geom_quat`` or ``site_pos`` in models
+  with spatial tendons now recomputes tendon rest lengths and inverse weights, and
+  randomizing ``site_pos`` or ``site_quat`` with site transmission actuators now
+  recomputes ``actuator_acc0``.
+- ``dr.cam_pos``, ``dr.cam_quat``, ``dr.light_pos`` and ``dr.light_dir`` now update
+  tracking cameras and lights, and viewers show them at each world's pose.
+- DR terms that list ``jnt_pos`` or ``jnt_axis`` in ``requires_model_fields`` now
+  recompute the derived inertia constants.
+- ``BuiltinPdActuator`` now sends position and velocity targets to the right
+  elements when ``EntityCfg.sort_actuators=True``. Contribution by @saikishor.
+- Observations no longer read sensor data cached before the ``forward()`` at the
+  end of ``step()``, which made contact observations depend on whether another
+  environment reset that step. The simulation now invalidates sensor caches
+  whenever its data changes. Reported by @Chr0mium24 in :issue:`1309`.
+- ``export-scene`` no longer deletes a non-empty ``--output-dir``. Pass
+  ``--overwrite True`` to replace a previous export. Contribution by @saikishor.
+- ``upright`` now uses the root body when ``asset_cfg`` selects no bodies, instead
+  of raising a shape error on multi-body entities. Contribution by @yunyv.
+- Delayed position actuators now hold the post-reset joint positions until the
+  first action arrives, instead of driving toward 0 for their first ``lag``
+  physics steps after every reset. Targets set during the reset are kept.
 - ``posture`` and ``variable_posture`` now pair each joint with its own ``std`` when
   ``asset_cfg.preserve_order=True``.
 - ``apply_body_impulse`` now applies ``body_point_offset`` in the body frame, as
@@ -54,6 +111,9 @@ Fixed
   failed to load.
 - The cartpole ``small_control`` reward term now matches dm_control, which reaches 0
   at the control margin (``value_at_margin=0``) instead of 0.1.
+- Partial environment resets now preserve untouched environments' actuator delay
+  histories, lag schedules, and control outputs in both explicit and automatic
+  resets :issue:`1216`.
 - ``VideoRecorder`` now evaluates ``episode_trigger`` only at the start of an episode,
   so a recording no longer restarts mid-episode and overwrites the video.
 - String-keyed ``dr.geom_size`` and isotropic ``dr.pair_friction`` ranges now
@@ -100,6 +160,9 @@ Fixed
 - Envs sampled by ``rel_forward_envs`` now keep their straight command. Previously,
   if an env was also sampled as a heading or world frame env, its yaw rate was
   replaced by a heading turn or its velocity by the world frame sample.
+- ``MaterialCfg.geom_names_expr`` now assigns the material to all matching unnamed
+  geoms. Previously it looked up matched names via ``spec.geom(name)``, which always
+  returned the first unnamed geom and left any remaining unnamed geoms unchanged.
 
 Version 1.6.0 (August 8, 2026)
 ------------------------------

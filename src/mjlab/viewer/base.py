@@ -288,7 +288,11 @@ class BaseViewer(ABC):
       with torch.no_grad():
         obs = self.env.get_observations()
         actions = self.policy(obs)
-        dones = self.env.step(actions)[2]
+        result = self.env.step(actions)
+        dones = result[2]
+        # Gymnasium-style envs report truncations separately.
+        if len(result) == 5:
+          dones = dones | result[3]
         reset_fn = getattr(self.policy, "reset", None)
         if reset_fn is not None:
           reset_fn(dones)

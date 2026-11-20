@@ -120,7 +120,7 @@ def test_none_terms_are_skipped(mock_env):
     ),
     "skipped": None,
   }
-  manager = MetricsManager(cfg, mock_env)  # type: ignore[arg-type]
+  manager = MetricsManager(cfg, mock_env)  # ty: ignore[invalid-argument-type]
   assert manager._term_names == ["valid"]
 
 

@@ -8,6 +8,8 @@ import torch
 from conftest import get_test_device
 
 from mjlab.entity import EntityCfg
+from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
+from mjlab.managers import ObservationGroupCfg, ObservationTermCfg, RewardTermCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sensor import GridPatternCfg, ObjRef, RayCastSensorCfg
 from mjlab.sensor.contact_sensor import ContactMatch, ContactSensorCfg
@@ -216,35 +218,65 @@ def test_data_reflects_physics_after_step_and_update(device):
   assert data1 is not data2
 
 
-def test_stale_cache_without_update(device):
-  """Verify that without update(), cache returns stale data."""
+def test_sense_refreshes_cached_raycast_data(device):
+  """sense() drops data cached before it, so all fields come from the new rays."""
   scene, sim = create_raycast_sensor_scene(device)
   sensor = scene["terrain_scan"]
-  robot_entity = scene["robot"]
 
-  # Initial step + update.
   sim.step()
   scene.update(dt=sim.cfg.mujoco.timestep)
   sim.sense()
+  _ = sensor.data  # Populate the cache.
 
-  # Access data to populate cache.
-  data1 = sensor.data
-  initial_distances = data1.distances.clone()
-
-  # Move robot higher.
   root_state = torch.zeros((2, 13), device=device)
-  root_state[:, 2] = 4.0  # Move to z=4.
-  root_state[:, 3] = 1.0  # Unit quaternion.
-  robot_entity.write_root_state_to_sim(root_state)
+  root_state[:, 2] = 4.0
+  root_state[:, 3] = 1.0
+  scene["robot"].write_root_state_to_sim(root_state)
+  sim.forward()
+  sim.sense()
 
-  # Step but DON'T call update - cache should NOT be invalidated.
-  sim.step()
+  data = sensor.data
+  torch.testing.assert_close(data.distances, torch.full_like(data.distances, 4.0))
+  torch.testing.assert_close(
+    data.frame_pos_w[..., 2], torch.full((2, 1), 4.0, device=device)
+  )
 
-  # Access data - should still be cached (stale).
-  data2 = sensor.data
 
-  # Data should be the same object (cache was not invalidated).
-  assert data1 is data2
+def _box_force(env: ManagerBasedRlEnv) -> torch.Tensor:
+  return env.scene["box_contact"].data.force.flatten(start_dim=1)
 
-  # Values should be the same (stale).
-  assert torch.allclose(data2.distances, initial_distances)
+
+def test_observations_see_post_forward_contact_data(device):
+  """A reward read before step()'s forward() must not leak into observations."""
+  cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      num_envs=2,
+      env_spacing=3.0,
+      entities={
+        "box": EntityCfg(spec_fn=lambda: mujoco.MjSpec.from_string(FALLING_BOX_XML))
+      },
+      sensors=(
+        ContactSensorCfg(
+          name="box_contact",
+          primary=ContactMatch(mode="geom", pattern="box_geom", entity="box"),
+          secondary=None,
+          fields=("found", "force"),
+        ),
+      ),
+    ),
+    observations={
+      "obs": ObservationGroupCfg(terms={"force": ObservationTermCfg(func=_box_force)})
+    },
+    rewards={"force": RewardTermCfg(func=lambda env: _box_force(env).sum(1), weight=1)},
+    sim=SimulationCfg(njmax=75),
+    decimation=4,
+    episode_length_s=10.0,  # No resets, which would hide stale data.
+  )
+  env = ManagerBasedRlEnv(cfg=cfg, device=device)
+  env.reset()
+
+  for _ in range(60):  # The box lands after about 36 steps.
+    obs = env.step(torch.zeros(2, 0, device=device))[0]["obs"]
+    env.scene.invalidate_sensor_caches()
+    torch.testing.assert_close(obs, _box_force(env))
+  env.close()

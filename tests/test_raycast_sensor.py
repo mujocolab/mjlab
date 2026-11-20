@@ -866,7 +866,7 @@ def test_height_scan_hits(robot_with_floor_xml, device):
   sim.sense()
 
   env = _FakeEnv(scene)
-  heights = height_scan(env, "terrain_scan")  # type: ignore[invalid-argument-type]
+  heights = height_scan(env, "terrain_scan")  # ty: ignore[invalid-argument-type]
 
   sensor = scene["terrain_scan"]
   # Shape: [num_envs, num_rays].
@@ -907,7 +907,7 @@ def test_height_scan_misses(device):
   sim.sense()
 
   env = _FakeEnv(scene)
-  heights = height_scan(env, "terrain_scan")  # type: ignore[invalid-argument-type]
+  heights = height_scan(env, "terrain_scan")  # ty: ignore[invalid-argument-type]
 
   # Misses default to sensor max_distance.
   assert torch.allclose(
@@ -1067,7 +1067,7 @@ def test_multi_frame_height_scan(device):
   sim.sense()
 
   env = _FakeEnv(scene)
-  heights = height_scan(env, "multi")  # type: ignore[invalid-argument-type]
+  heights = height_scan(env, "multi")  # ty: ignore[invalid-argument-type]
 
   assert heights.shape == (2, 3)
   # Each frame's height = frame_z - hit_z.
@@ -1238,7 +1238,7 @@ def test_multi_frame_multiple_rays_per_frame(device):
 
   # height_scan should also produce correct per-frame heights.
   env = _FakeEnv(scene)
-  heights = height_scan(env, "multi")  # type: ignore[invalid-argument-type]
+  heights = height_scan(env, "multi")  # ty: ignore[invalid-argument-type]
   assert heights.shape == (1, 18)
   top_heights = heights[0, :N]
   bot_heights = heights[0, N:]

@@ -20,6 +20,7 @@ from mjlab.entity.variants import (
   allocate_worlds,
   build_variant_model,
 )
+from mjlab.sim.sim import Simulation, SimulationCfg
 from mjlab.viewer.model_sync import (
   disable_model_sameframe_shortcuts,
   sync_model_fields,
@@ -1742,6 +1743,15 @@ def test_sameframe_fix_makes_host_forward_match_variant():
   disable_model_sameframe_shortcuts(base_model)
   mujoco.mj_forward(base_model, base_data)
   np.testing.assert_allclose(base_data.geom_xpos, cone_data.geom_xpos, atol=1e-6)
+
+
+def test_sync_model_fields_skips_empty_fields():
+  """Expanded camera fields of a model without cameras do not break viewer sync."""
+  model = _simple_sphere_spec().compile()
+  assert model.ncam == 0
+  sim = Simulation(num_envs=2, cfg=SimulationCfg(), model=model, device="cpu")
+  sim.expand_model_fields(("cam_pos0", "cam_mat0"))
+  sync_model_fields(model, sim.model, {"cam_pos0", "cam_mat0"}, env_idx=1)
 
 
 def test_sync_model_fields_copies_only_requested_env_fields():

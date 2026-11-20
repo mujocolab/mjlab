@@ -1361,7 +1361,10 @@ def sample_triangle(lower: float, upper: float, size: int | tuple[int, ...], dev
 
 
 def sample_uniform(
-    lower: torch.Tensor | float, upper: torch.Tensor | float, size: int | tuple[int, ...], device: str
+    lower: torch.Tensor | float,
+    upper: torch.Tensor | float,
+    size: int | tuple[int, ...],
+    device: str | torch.device,
 ) -> torch.Tensor:
     """Sample uniformly within a range.
 

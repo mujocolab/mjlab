@@ -19,7 +19,8 @@ class TorchArray:
     """Initialize the tensor proxy with a Warp array."""
     self._wp_array = wp_array
     # Workaround for Warp bug: wp.to_torch fails on empty CPU arrays.
-    if wp_array.device.is_cpu and wp_array.size == 0:  # type: ignore[union-attr]
+    assert wp_array.device is not None
+    if wp_array.device.is_cpu and wp_array.size == 0:
       self._tensor = torch.zeros(
         wp_array.shape, dtype=wp.dtype_to_torch(wp_array.dtype)
       )
@@ -36,7 +37,7 @@ class TorchArray:
       new_shape = (nworld,) + self._tensor.shape[1:]
       self._tensor = self._tensor.expand(new_shape)
 
-    self._is_cuda = not self._wp_array.device.is_cpu  # type: ignore
+    self._is_cuda = not wp_array.device.is_cpu
     self._torch_stream = self._setup_stream()
 
   def _setup_stream(self) -> Optional[torch.cuda.Stream]:

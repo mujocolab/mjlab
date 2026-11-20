@@ -167,7 +167,7 @@ class ManagerBasedRlEnv:
   """Manager-based RL environment."""
 
   is_vector_env = True
-  metadata = {
+  metadata: dict[str, Any] = {
     "render_modes": [None, "rgb_array"],
     "mujoco_version": mujoco.__version__,
     "warp_version": wp.config.version,
@@ -209,6 +209,7 @@ class ManagerBasedRlEnv:
       model=self.sim.model,
       data=self.sim.data,
     )
+    self.sim.add_data_listener(self.scene.invalidate_sensor_caches)
 
     # Wire sensor context to simulation for sense_graph.
     if self.scene.sensor_context is not None:
@@ -369,7 +370,7 @@ class ManagerBasedRlEnv:
       self.seed(seed)
     self.extras["log"] = dict()
     self._reset_idx(env_ids)
-    self.scene.write_data_to_sim()
+    self.scene.write_data_to_sim(env_ids=env_ids)
     self.sim.forward()
     # Scoped to env_ids so a partial reset does not advance stateful commands in the
     # other envs.
@@ -469,7 +470,7 @@ class ManagerBasedRlEnv:
     if self.cfg.auto_reset and len(reset_env_ids) > 0:
       self.recorder_manager.record_pre_reset(reset_env_ids)
       self._reset_idx(reset_env_ids)
-      self.scene.write_data_to_sim()
+      self.scene.write_data_to_sim(env_ids=reset_env_ids)
 
     # Single forward() call: recompute derived quantities from current
     # qpos/qvel for every env. For non-reset envs this resolves the

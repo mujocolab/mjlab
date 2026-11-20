@@ -237,10 +237,8 @@ class MaterialCfg(SpecCfg):
       mat.textures[mujoco.mjtTextureRole.mjTEXROLE_RGB.value] = self.texture
 
     if self.geom_names_expr is not None:
-      all_geom_names = tuple(g.name for g in spec.geoms)
-      matched = filter_exp(self.geom_names_expr, all_geom_names)
-      for geom_name in matched:
-        spec.geom(geom_name).material = self.name
+      for geom in _matched_geoms(spec, self.geom_names_expr):
+        geom.material = self.name
 
   def validate(self) -> None:
     if self.texrepeat[0] <= 0 or self.texrepeat[1] <= 0:
