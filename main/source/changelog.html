@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 18, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 20, 2026"/>
   </head>
   
   
@@ -595,6 +595,8 @@ fires. Calling it directly no longer updates <code class="docutils literal notra
 config <code class="docutils literal notranslate"><span class="pre">*_names_expr</span></code> fields now match whole names, so <code class="docutils literal notranslate"><span class="pre">&quot;joint1&quot;</span></code> no longer
 matches <code class="docutils literal notranslate"><span class="pre">joint10</span></code>. Keys in <code class="docutils literal notranslate"><span class="pre">joint_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">joint_vel</span></code> or <code class="docutils literal notranslate"><span class="pre">posture_target</span></code> that
 match no joint now raise. Contribution by &#64;saikishor.</p></li>
+<li><p>Tracking body velocity rewards rotate the reference by the anchor yaw offset and
+are renamed from <code class="docutils literal notranslate"><span class="pre">motion_global_body_*</span></code> to <code class="docutils literal notranslate"><span class="pre">motion_relative_body_*</span></code>.</p></li>
 <li><p>Heightfield terrains now lay hfield rows along y and columns along x, as MuJoCo
 expects. Non-square sub-terrains are no longer stretched with flat patches off the
 terrain; square ones are mirrored across x=y for a given seed.</p></li>
@@ -1904,7 +1906,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 18, 2026.
+  Last updated on Nov 20, 2026.
   <br/>
 </p>
   </div>
