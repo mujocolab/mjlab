@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import copy
+import glob
+import json
 import math
+import os
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
@@ -9,6 +12,7 @@ import numpy as np
 import torch
 
 from mjlab.managers import CommandTerm, CommandTermCfg
+from mjlab.utils.forward_kinematics import ForwardKinematics
 from mjlab.utils.lab_api.math import (
   matrix_from_quat,
   quat_apply,
@@ -32,32 +36,129 @@ if TYPE_CHECKING:
 
 _DESIRED_FRAME_COLORS = ((1.0, 0.5, 0.5), (0.5, 1.0, 0.5), (0.5, 0.5, 1.0))
 
+# Per-frame arrays of a motion file, which also holds ``joint_names`` and ``fps``.
+MOTION_FIELDS = (
+  "root_pos_w",
+  "root_quat_w",
+  "root_lin_vel_w",
+  "root_ang_vel_w",
+  "joint_pos",
+  "joint_vel",
+)
+
+
+def resolve_motion_file(source: str | list[str]) -> list[str]:
+  """The file paths of a motion source, with ``~`` expanded: a list's paths, an
+  existing path as it is, or the sorted matches of a glob, which must have some."""
+  if isinstance(source, list):
+    return [os.path.expanduser(path) for path in source]
+  source = os.path.expanduser(source)
+  if not os.path.exists(source) and any(c in source for c in "*?[]"):
+    files = sorted(glob.glob(source))
+    if not files:
+      raise ValueError(f"No files matched pattern: {source}")
+    return files
+  return [source]
+
+
+def load_clip(path: str) -> dict[str, np.ndarray]:
+  """The arrays of the motion ``.npz`` file at ``path``."""
+  keys = (*MOTION_FIELDS, "joint_names", "fps")
+  with np.load(path) as data:
+    missing = [key for key in keys if key not in data.files]
+    if missing:
+      raise ValueError(
+        f"{path}: the motion file lacks {missing}; convert the motion with "
+        "mjlab.scripts.csv_to_npz"
+      )
+    return {key: data[key] for key in keys}
+
 
 class MotionLoader:
+  """Reference motion as per-frame tensors on ``device``: the root link's world pose
+  and twist and the joint positions and velocities of all clips, concatenated.
+  ``body_state`` computes the tracked bodies from them with ``fk``.
+
+  ``motion_file`` is ``.npz`` files (one file, a list or a glob) or a directory
+  written by ``scripts/pack_motions.py``. ``motion_ends[i]`` is the exclusive end
+  frame of clip ``i`` and ``motion_names[i]`` its name. The clips share ``fps``,
+  have ``fk.joint_names`` as their joints and at least two frames each.
+  """
+
   def __init__(
-    self, motion_file: str, body_indexes: torch.Tensor, device: str = "cpu"
+    self, motion_file: str | list[str], fk: ForwardKinematics, device: str = "cpu"
   ) -> None:
-    data = np.load(motion_file)
+    files = resolve_motion_file(motion_file)
+    if len(files) == 1 and os.path.isdir(files[0]):
+      root = files[0]
+      clips = []
+      data = {key: np.load(os.path.join(root, f"{key}.npy")) for key in MOTION_FIELDS}
+      motion_ends = np.load(os.path.join(root, "motion_ends.npy"))
+      fps = float(np.load(os.path.join(root, "fps.npy")).item())
+      with open(os.path.join(root, "joint_names.json")) as fh:
+        clip_joints = [json.load(fh)]
+      with open(os.path.join(root, "motion_names.json")) as fh:
+        names = json.load(fh)
+    else:
+      clips = [load_clip(path) for path in files]
+      motion_ends = np.cumsum([clip["joint_pos"].shape[0] for clip in clips])
+      fps = float(clips[0]["fps"].item())
+      clip_joints = [clip["joint_names"].tolist() for clip in clips]
+      names = [os.path.splitext(os.path.basename(p))[0] for p in files]
+      for path, clip in zip(files, clips, strict=True):
+        clip_fps = float(clip["fps"].item())
+        if clip_fps != fps:
+          raise ValueError(f"{path}: fps {clip_fps} is not the {fps} of {files[0]}")
+
+    for path, joints in zip(files, clip_joints, strict=True):
+      if joints != fk.joint_names:
+        raise ValueError(
+          f"{path}: motion joints {joints} are not the robot's {fk.joint_names}"
+        )
+
+    # A reset frame comes before its clip's last frame, so a clip needs two frames.
+    for name, length in zip(names, np.diff(motion_ends, prepend=0), strict=True):
+      if length < 2:
+        raise ValueError(f"motion clip {name} has {length} frame(s), fewer than 2")
+
+    # The clips join after the checks, whose errors name the file at fault.
+    if clips:
+      data = {
+        key: np.concatenate([clip[key] for clip in clips]) for key in MOTION_FIELDS
+      }
     self.joint_pos = torch.tensor(data["joint_pos"], dtype=torch.float32, device=device)
     self.joint_vel = torch.tensor(data["joint_vel"], dtype=torch.float32, device=device)
-    self._body_pos_w = torch.tensor(
-      data["body_pos_w"], dtype=torch.float32, device=device
+    self.root_pos_w = torch.tensor(
+      data["root_pos_w"], dtype=torch.float32, device=device
     )
-    self._body_quat_w = torch.tensor(
-      data["body_quat_w"], dtype=torch.float32, device=device
+    self.root_quat_w = torch.tensor(
+      data["root_quat_w"], dtype=torch.float32, device=device
     )
-    self._body_lin_vel_w = torch.tensor(
-      data["body_lin_vel_w"], dtype=torch.float32, device=device
+    self.root_lin_vel_w = torch.tensor(
+      data["root_lin_vel_w"], dtype=torch.float32, device=device
     )
-    self._body_ang_vel_w = torch.tensor(
-      data["body_ang_vel_w"], dtype=torch.float32, device=device
+    self.root_ang_vel_w = torch.tensor(
+      data["root_ang_vel_w"], dtype=torch.float32, device=device
     )
-    self._body_indexes = body_indexes
-    self.body_pos_w = self._body_pos_w[:, self._body_indexes]
-    self.body_quat_w = self._body_quat_w[:, self._body_indexes]
-    self.body_lin_vel_w = self._body_lin_vel_w[:, self._body_indexes]
-    self.body_ang_vel_w = self._body_ang_vel_w[:, self._body_indexes]
+    self.fk = fk
+    self.fps = fps
     self.time_step_total = self.joint_pos.shape[0]
+    self.motion_ends = torch.as_tensor(motion_ends, dtype=torch.long, device=device)
+    self.motion_names: list[str] = names
+
+  def body_state(
+    self, frames: torch.Tensor
+  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """World positions, wxyz quaternions, linear and angular velocities of the
+    tracked bodies at ``frames``, without env origins."""
+    return self.fk(
+      self.root_pos_w[frames],
+      self.root_quat_w[frames],
+      self.joint_pos[frames],
+      self.root_lin_vel_w[frames],
+      self.root_ang_vel_w[frames],
+      self.joint_vel[frames],
+    )
 
 
 class MotionCommand(CommandTerm):
@@ -78,10 +179,29 @@ class MotionCommand(CommandTerm):
       device=self.device,
     )
 
-    self.motion = MotionLoader(
-      self.cfg.motion_file, self.body_indexes, device=self.device
+    fk = ForwardKinematics(
+      env.sim.mj_model,
+      self.robot.indexing.body_ids,
+      self.robot.indexing.joint_q_adr,
+      self.body_indexes,
+      device=self.device,
+    )
+    self.motion = MotionLoader(self.cfg.motion_file, fk, device=self.device)
+    # One fused kernel per call; env subsets of two or more share one graph.
+    self._body_state = torch.compile(
+      self.motion.body_state,
+      dynamic=True,
+      options={"max_fusion_size": 512},
+      disable=not self.device.startswith("cuda"),
     )
     self.time_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+    # The tracked bodies' reference states at ``time_steps``, without env origins.
+    (
+      self._body_pos_w,
+      self._body_quat_w,
+      self._body_lin_vel_w,
+      self._body_ang_vel_w,
+    ) = self._body_state(self.time_steps)
     self.body_pos_relative_w = torch.zeros(
       self.num_envs, len(cfg.body_names), 3, device=self.device
     )
@@ -137,40 +257,37 @@ class MotionCommand(CommandTerm):
 
   @property
   def body_pos_w(self) -> torch.Tensor:
-    return (
-      self.motion.body_pos_w[self.time_steps] + self._env.scene.env_origins[:, None, :]
-    )
+    return self._body_pos_w + self._env.scene.env_origins[:, None, :]
 
   @property
   def body_quat_w(self) -> torch.Tensor:
-    return self.motion.body_quat_w[self.time_steps]
+    return self._body_quat_w
 
   @property
   def body_lin_vel_w(self) -> torch.Tensor:
-    return self.motion.body_lin_vel_w[self.time_steps]
+    return self._body_lin_vel_w
 
   @property
   def body_ang_vel_w(self) -> torch.Tensor:
-    return self.motion.body_ang_vel_w[self.time_steps]
+    return self._body_ang_vel_w
 
   @property
   def anchor_pos_w(self) -> torch.Tensor:
     return (
-      self.motion.body_pos_w[self.time_steps, self.motion_anchor_body_index]
-      + self._env.scene.env_origins
+      self._body_pos_w[:, self.motion_anchor_body_index] + self._env.scene.env_origins
     )
 
   @property
   def anchor_quat_w(self) -> torch.Tensor:
-    return self.motion.body_quat_w[self.time_steps, self.motion_anchor_body_index]
+    return self._body_quat_w[:, self.motion_anchor_body_index]
 
   @property
   def anchor_lin_vel_w(self) -> torch.Tensor:
-    return self.motion.body_lin_vel_w[self.time_steps, self.motion_anchor_body_index]
+    return self._body_lin_vel_w[:, self.motion_anchor_body_index]
 
   @property
   def anchor_ang_vel_w(self) -> torch.Tensor:
-    return self.motion.body_ang_vel_w[self.time_steps, self.motion_anchor_body_index]
+    return self._body_ang_vel_w[:, self.motion_anchor_body_index]
 
   @property
   def robot_joint_pos(self) -> torch.Tensor:
@@ -281,11 +398,13 @@ class MotionCommand(CommandTerm):
     sampled_bins = torch.multinomial(
       sampling_probabilities, len(env_ids), replacement=True
     )
-    self.time_steps[env_ids] = (
-      (sampled_bins + sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device))
-      / self.bin_count
-      * (self.motion.time_step_total - 1)
-    ).long()
+    # Bins map to frames with int64 multiply-first math, which is exact for any
+    # bin count. Frames stay before ``total``, the last frame.
+    total = self.motion.time_step_total - 1
+    lo = (sampled_bins * total) // self.bin_count
+    hi = ((sampled_bins + 1) * total) // self.bin_count
+    jitter = sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device)
+    self.time_steps[env_ids] = lo + (jitter * (hi - lo)).long()
 
     # Update metrics.
     H = -(sampling_probabilities * (sampling_probabilities + 1e-12).log()).sum()
@@ -297,7 +416,7 @@ class MotionCommand(CommandTerm):
 
   def _uniform_sampling(self, env_ids: torch.Tensor):
     self.time_steps[env_ids] = torch.randint(
-      0, self.motion.time_step_total, (len(env_ids),), device=self.device
+      0, self.motion.time_step_total - 1, (len(env_ids),), device=self.device
     )
     self.metrics["sampling_entropy"][:] = 1.0  # Maximum entropy for uniform.
     self.metrics["sampling_top1_prob"][:] = 1.0 / self.bin_count
@@ -325,11 +444,24 @@ class MotionCommand(CommandTerm):
   def _resample_command(self, env_ids: torch.Tensor):
     if self.cfg.sampling_mode == "start":
       self.time_steps[env_ids] = 0
+      ends = self.motion.motion_ends
+      if len(ends) > 1:
+        # The first frame of a clip drawn uniformly at random.
+        starts = torch.cat([ends.new_zeros(1), ends[:-1]])
+        clips = torch.randint(len(starts), (len(env_ids),), device=self.device)
+        self.time_steps[env_ids] = starts[clips]
     elif self.cfg.sampling_mode == "uniform":
       self._uniform_sampling(env_ids)
     else:
       assert self.cfg.sampling_mode == "adaptive"
       self._adaptive_sampling(env_ids)
+
+    # An env reset advances the command by one frame before the first observation,
+    # so a reset frame is at most the frame before its clip's last frame.
+    frames = self.time_steps[env_ids]
+    on_last = torch.isin(frames, self.motion.motion_ends - 1)
+    frames = torch.where(on_last, frames - 1, frames)
+    self.set_time_steps(env_ids, frames)
 
     root_pos = self.body_pos_w[env_ids, 0].clone()
     root_ori = self.body_quat_w[env_ids, 0].clone()
@@ -381,6 +513,17 @@ class MotionCommand(CommandTerm):
     )
     self._pending_forward = True
 
+  def set_time_steps(self, env_ids: torch.Tensor | slice, frames: torch.Tensor) -> None:
+    """Move ``env_ids`` to ``frames`` and compute their tracked bodies there. A
+    direct write to ``time_steps`` leaves the bodies at their previous frames."""
+    self.time_steps[env_ids] = frames
+    (
+      self._body_pos_w[env_ids],
+      self._body_quat_w[env_ids],
+      self._body_lin_vel_w[env_ids],
+      self._body_ang_vel_w[env_ids],
+    ) = self._body_state(frames)
+
   def update_relative_body_poses(self) -> None:
     """Recompute ``body_pos_relative_w`` and ``body_quat_relative_w``.
 
@@ -408,13 +551,15 @@ class MotionCommand(CommandTerm):
     return extras
 
   def _update_command(self, env_ids: torch.Tensor | None = None):
-    if env_ids is None:
-      self.time_steps += 1
-    else:
-      self.time_steps[env_ids] += 1
-    wrap_ids = torch.where(self.time_steps >= self.motion.time_step_total)[0]
+    ids = env_ids
+    if ids is None:
+      ids = torch.arange(self.num_envs, device=self.device)
+    self.time_steps[ids] += 1
+    # A frame that reaches a clip end has left its clip.
+    wrap_ids = ids[torch.isin(self.time_steps[ids], self.motion.motion_ends)]
     if wrap_ids.numel() > 0:
       self._resample_command(wrap_ids)
+    self.set_time_steps(ids, self.time_steps[ids])
 
     # _resample_command writes qpos/qvel but does not refresh derived
     # quantities; forward() so update_relative_body_poses reads the
@@ -541,8 +686,8 @@ class MotionCommand(CommandTerm):
 
       @scrubber.on_update
       def _(_) -> None:
-        idx = get_env_idx()
-        self.time_steps[idx] = int(scrubber.value)
+        env_ids = torch.tensor([get_env_idx()], device=self.device)
+        self.set_time_steps(env_ids, torch.full_like(env_ids, int(scrubber.value)))
         if on_change is not None:
           on_change()
 
@@ -586,7 +731,7 @@ class MotionCommand(CommandTerm):
     Like ``_resample_command`` but deterministic: no random
     perturbations to pose, velocity, or joint positions.
     """
-    self.time_steps[env_ids] = frame
+    self.set_time_steps(env_ids, torch.full_like(env_ids, frame))
     self._write_reference_state_to_sim(
       env_ids,
       self.body_pos_w[env_ids, 0],
@@ -600,7 +745,7 @@ class MotionCommand(CommandTerm):
 
 @dataclass(kw_only=True)
 class MotionCommandCfg(CommandTermCfg):
-  motion_file: str
+  motion_file: str | list[str]
   anchor_body_name: str
   body_names: tuple[str, ...]
   entity_name: str

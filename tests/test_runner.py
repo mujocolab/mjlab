@@ -488,6 +488,14 @@ class _MockMotion:
     self.body_lin_vel_w = torch.randn(num_steps, num_bodies, 3)
     self.body_ang_vel_w = torch.randn(num_steps, num_bodies, 3)
 
+  def body_state(self, frames):
+    return (
+      self.body_pos_w[frames],
+      self.body_quat_w[frames],
+      self.body_lin_vel_w[frames],
+      self.body_ang_vel_w[frames],
+    )
+
 
 def test_onnx_motion_model_policy_matches_actor():
   """_OnnxMotionModel actions output matches calling the actor directly."""
