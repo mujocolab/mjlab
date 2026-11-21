@@ -181,6 +181,47 @@ def test_commanded_displacement_and_episode_start(device):
   assert torch.allclose(term.episode_start_pos_w, pose[[1, 1], :2], atol=1e-6)
 
 
+def test_partial_reset_does_not_accumulate_other_envs_metrics(device):
+  """The reset-path compute for some envs must not add a step of tracking error to
+  the running metrics of the other envs."""
+  scene, sim = make_scene_and_sim(
+    device, load_fixture_xml("floating_base_articulated"), sensors=(), num_envs=2
+  )
+  env = cast(
+    "ManagerBasedRlEnv",
+    SimpleNamespace(
+      scene=scene,
+      sim=sim,
+      num_envs=2,
+      device=device,
+      step_dt=0.02,
+      episode_length_buf=torch.ones(2, dtype=torch.long, device=device),
+    ),
+  )
+  cfg = UniformVelocityCommandCfg(
+    entity_name="robot",
+    resampling_time_range=(10.0, 10.0),
+    rel_heading_envs=0.0,
+    ranges=UniformVelocityCommandCfg.Ranges(
+      lin_vel_x=(1.0, 1.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.5, 0.5)
+    ),
+  )
+  term = cfg.build(env)
+  term.reset(env_ids=torch.arange(2, device=device))
+  sim.forward()
+  term.compute(dt=0.02)  # The robot is at rest, so the tracking error is nonzero.
+  before = {name: value.clone() for name, value in term.metrics.items()}
+
+  # ManagerBasedRlEnv.reset(env_ids=[0]): reset, then compute scoped to env 0.
+  env_ids = torch.tensor([0], device=device)
+  term.reset(env_ids=env_ids)
+  term.compute(dt=0.0, env_ids=env_ids)
+
+  for name, value in term.metrics.items():
+    assert value[0] > 0.0, name
+    assert value[1] == before[name][1], name
+
+
 def test_forward_envs_ignore_heading_and_world_frame(device):
   scene, sim = make_scene_and_sim(
     device, load_fixture_xml("floating_base_articulated"), sensors=(), num_envs=2
