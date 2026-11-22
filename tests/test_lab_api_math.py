@@ -4,7 +4,7 @@ import pytest
 import torch
 from conftest import get_test_device
 
-from mjlab.utils.lab_api.math import apply_delta_pose, sample_gaussian
+from mjlab.utils.lab_api.math import apply_delta_pose, project_points, sample_gaussian
 
 
 @pytest.fixture
@@ -78,3 +78,29 @@ def test_sample_gaussian_rejects_unbroadcastable_mean(device):
 
   with pytest.raises(RuntimeError):
     sample_gaussian(mean, 1.0, (3,), device=device)
+
+
+@pytest.mark.parametrize("batched", [False, True])
+def test_project_points_preserves_single_batch_axis(device, batched):
+  points = torch.tensor([[2.0, 4.0, 2.0], [6.0, 3.0, 3.0]], device=device)
+  intrinsics = torch.tensor(
+    [[2.0, 0.0, 1.0], [0.0, 3.0, 2.0], [0.0, 0.0, 1.0]], device=device
+  )
+  expected = torch.tensor([[3.0, 8.0, 2.0], [5.0, 5.0, 3.0]], device=device)
+  if batched:
+    points = points.unsqueeze(0)
+    expected = expected.unsqueeze(0)
+  torch.testing.assert_close(project_points(points, intrinsics), expected)
+
+
+def test_project_points_uses_intrinsics_for_each_batch(device):
+  points = torch.tensor([[[2.0, 4.0, 2.0]], [[6.0, 3.0, 3.0]]], device=device)
+  intrinsics = torch.tensor(
+    [
+      [[2.0, 0.0, 1.0], [0.0, 3.0, 2.0], [0.0, 0.0, 1.0]],
+      [[4.0, 0.0, 3.0], [0.0, 5.0, 1.0], [0.0, 0.0, 1.0]],
+    ],
+    device=device,
+  )
+  expected = torch.tensor([[[3.0, 8.0, 2.0]], [[11.0, 6.0, 3.0]]], device=device)
+  torch.testing.assert_close(project_points(points, intrinsics), expected)
