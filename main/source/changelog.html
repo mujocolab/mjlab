@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 20, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 22, 2026"/>
   </head>
   
   
@@ -619,6 +619,8 @@ attribute of the <code class="docutils literal notranslate"><span class="pre">rs
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">project_points()</span></code> now keeps the leading dimension for a batch of one and
+returns unbatched projections without an extra dimension.</p></li>
 <li><p>YAM RGB and depth cube-lifting tasks now use separate experiment directories,
 <code class="docutils literal notranslate"><span class="pre">yam_lift_cube_rgb</span></code> and <code class="docutils literal notranslate"><span class="pre">yam_lift_cube_depth</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">EntityData.gravity_vec_w</span></code> now initializes from normalized model gravity, so
@@ -1906,7 +1908,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 20, 2026.
+  Last updated on Nov 22, 2026.
   <br/>
 </p>
   </div>
