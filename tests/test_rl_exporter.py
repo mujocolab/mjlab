@@ -1,7 +1,9 @@
 """Tests for RL exporter utilities."""
 
+import math
 import os
 import tempfile
+from dataclasses import dataclass
 
 import mujoco
 import onnx
@@ -9,9 +11,18 @@ import pytest
 import torch
 from conftest import get_test_device
 
-from mjlab.actuator import XmlActuatorCfg
+from mjlab.actuator import (
+  BuiltinMotorActuatorCfg,
+  BuiltinPdActuatorCfg,
+  BuiltinPositionActuatorCfg,
+  BuiltinVelocityActuatorCfg,
+  IdealPdActuatorCfg,
+  XmlActuatorCfg,
+)
+from mjlab.actuator.actuator import TransmissionType
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg, mdp
+from mjlab.managers.action_manager import ActionTerm, ActionTermCfg
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
 from mjlab.rl.exporter_utils import (
   attach_metadata_to_onnx,
@@ -225,13 +236,10 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
   assert "joint1" in joint_names_meta
   assert "joint2" in joint_names_meta
 
-  # Stiffness/damping are only defined for actuated joints, in natural joint order.
-  stiffness_meta = metadata["joint_stiffness"]
-  damping_meta = metadata["joint_damping"]
-  assert isinstance(stiffness_meta, list)
-  assert isinstance(damping_meta, list)
-  assert len(stiffness_meta) == len(robot.spec.actuators)
-  assert len(damping_meta) == len(robot.spec.actuators)
+  # Gains are only listed for actuated joints (joint2). XML actuators have no
+  # stiffness or damping field, so both are NaN.
+  assert metadata["joint_stiffness"] == pytest.approx([float("nan")], nan_ok=True)
+  assert metadata["joint_damping"] == pytest.approx([float("nan")], nan_ok=True)
 
   observation_names = metadata["observation_names"]
   assert isinstance(observation_names, list)
@@ -246,6 +254,9 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
   assert isinstance(observation_history_length, list)
   assert len(observation_history_length) == len(observation_names)
   assert observation_history_length[0] == 5
+
+  # Two joints with a flattened history of 5.
+  assert metadata["observation_terms_dim"] == [10]
 
   observation_flatten_history_dim = metadata["observation_terms_flatten_history_dim"]
   assert isinstance(observation_flatten_history_dim, list)
@@ -342,5 +353,441 @@ def test_get_base_metadata_multiple_terms_scale_clip(device):
 
   # joint_pos_scaled has default clip.
   assert clips[2] == [float("-inf"), float("inf")]
+
+  env.close()
+
+
+# Robot with joint, tendon and site transmissions. The spare tendon and site are
+# never actuated, so they are not exported.
+ROBOT_XML_MIXED_TRANSMISSIONS = """
+<mujoco>
+  <worldbody>
+    <body name="base" pos="0 0 1">
+      <freejoint name="free_joint"/>
+      <geom name="base_geom" type="box" size="0.2 0.2 0.1" mass="1.0"/>
+      <site name="tip" pos="0 0 0.1"/>
+      <site name="spare_site" pos="0 0 -0.1"/>
+      <body name="link1">
+        <joint name="j1" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
+        <geom name="link1_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+      <body name="link2">
+        <joint name="j2" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
+        <geom name="link2_geom" type="box" size="0.1 0.1 0.1" mass="0.1"/>
+      </body>
+    </body>
+  </worldbody>
+  <tendon>
+    <fixed name="ten">
+      <joint joint="j1" coef="1"/>
+      <joint joint="j2" coef="-1"/>
+    </fixed>
+    <fixed name="spare_ten">
+      <joint joint="j1" coef="1"/>
+    </fixed>
+  </tendon>
+</mujoco>
+"""
+
+JOINT_ACTUATORS = (
+  BuiltinPositionActuatorCfg(target_names_expr=("j1",), stiffness=20, damping=2),
+  BuiltinVelocityActuatorCfg(target_names_expr=("j2",), damping=1),
+)
+TENDON_ACTUATORS = (
+  BuiltinPositionActuatorCfg(
+    target_names_expr=("ten",),
+    transmission_type=TransmissionType.TENDON,
+    stiffness=30,
+    damping=3,
+  ),
+)
+SITE_ACTUATORS = (
+  BuiltinMotorActuatorCfg(
+    target_names_expr=("tip",),
+    transmission_type=TransmissionType.SITE,
+    effort_limit=5.0,
+  ),
+)
+ALL_ACTUATORS = JOINT_ACTUATORS + TENDON_ACTUATORS + SITE_ACTUATORS
+
+TRANSMISSION_KEYS = {
+  "joint": {"joint_names", "joint_stiffness", "joint_damping", "default_joint_pos"},
+  "tendon": {
+    "tendon_names",
+    "tendon_stiffness",
+    "tendon_damping",
+    "default_tendon_pos",
+  },
+  "site": {"site_names", "site_stiffness", "site_damping"},
+}
+
+
+def _make_mixed_transmission_env(
+  device, actions: dict, actuators: tuple = ALL_ACTUATORS
+) -> ManagerBasedRlEnv:
+  # Nonzero default joint positions and j2 velocity make offsets taken from the
+  # defaults distinguishable from zero.
+  robot_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_MIXED_TRANSMISSIONS),
+    init_state=EntityCfg.InitialStateCfg(
+      joint_pos={"j1": 0.2, "j2": -0.1}, joint_vel={"j1": 0.0, "j2": 0.5}
+    ),
+    articulation=EntityArticulationInfoCfg(actuators=actuators),
+  )
+  env_cfg = ManagerBasedRlEnvCfg(
+    scene=SceneCfg(
+      terrain=TerrainEntityCfg(terrain_type="plane"),
+      num_envs=1,
+      extent=1.0,
+      entities={"robot": robot_cfg},
+    ),
+    observations={
+      "actor": ObservationGroupCfg(
+        terms={
+          "joint_pos": ObservationTermCfg(
+            func=lambda env: env.scene["robot"].data.joint_pos
+          ),
+        },
+      ),
+    },
+    actions=actions,
+    sim=SimulationCfg(mujoco=MujocoCfg(timestep=0.01, iterations=1)),
+    decimation=1,
+    episode_length_s=1.0,
+  )
+  return ManagerBasedRlEnv(cfg=env_cfg, device=device)
+
+
+def _transmission_keys(metadata: dict) -> set[str]:
+  return {k for keys in TRANSMISSION_KEYS.values() for k in keys if k in metadata}
+
+
+@pytest.mark.parametrize(
+  "actuators,actions,expected",
+  [
+    pytest.param(
+      JOINT_ACTUATORS,
+      {
+        "joint_pos": mdp.JointPositionActionCfg(
+          entity_name="robot", actuator_names=(".*",)
+        )
+      },
+      {
+        "joint_names": ["j1", "j2"],
+        # Velocity actuators have damping but no stiffness.
+        "joint_stiffness": [20.0, float("nan")],
+        "joint_damping": [2.0, 1.0],
+        "default_joint_pos": [0.2, -0.1],
+      },
+      id="joint",
+    ),
+    pytest.param(
+      TENDON_ACTUATORS,
+      {
+        "tendon_len": mdp.TendonLengthActionCfg(
+          entity_name="robot", actuator_names=("ten",), offset=0.3
+        )
+      },
+      {
+        "tendon_names": ["ten"],
+        "tendon_stiffness": [30.0],
+        "tendon_damping": [3.0],
+        "default_tendon_pos": [0.3],
+      },
+      id="tendon_length",
+    ),
+    pytest.param(
+      TENDON_ACTUATORS,
+      {
+        "tendon_vel": mdp.TendonVelocityActionCfg(
+          entity_name="robot", actuator_names=("ten",), offset=0.3
+        )
+      },
+      # Only a length action defines the tendon's default length.
+      {
+        "tendon_names": ["ten"],
+        "tendon_stiffness": [30.0],
+        "tendon_damping": [3.0],
+        "default_tendon_pos": [float("nan")],
+      },
+      id="tendon_velocity",
+    ),
+    pytest.param(
+      SITE_ACTUATORS,
+      {
+        "site_effort": mdp.SiteEffortActionCfg(
+          entity_name="robot", actuator_names=("tip",)
+        )
+      },
+      # Motors have no PD gains, and sites have no default position.
+      {
+        "site_names": ["tip"],
+        "site_stiffness": [float("nan")],
+        "site_damping": [float("nan")],
+      },
+      id="site",
+    ),
+    pytest.param(
+      ALL_ACTUATORS,
+      {
+        "joint_pos": mdp.JointPositionActionCfg(
+          entity_name="robot", actuator_names=(".*",)
+        ),
+        "tendon_len": mdp.TendonLengthActionCfg(
+          entity_name="robot", actuator_names=("ten",), offset=0.3
+        ),
+        "site_effort": mdp.SiteEffortActionCfg(
+          entity_name="robot", actuator_names=("tip",)
+        ),
+      },
+      {
+        "joint_names": ["j1", "j2"],
+        "joint_stiffness": [20.0, float("nan")],
+        "joint_damping": [2.0, 1.0],
+        "default_joint_pos": [0.2, -0.1],
+        "tendon_names": ["ten"],
+        "tendon_stiffness": [30.0],
+        "tendon_damping": [3.0],
+        "default_tendon_pos": [0.3],
+        "site_names": ["tip"],
+        "site_stiffness": [float("nan")],
+        "site_damping": [float("nan")],
+      },
+      id="mixed",
+    ),
+  ],
+)
+def test_get_base_metadata_transmission_models(device, actuators, actions, expected):
+  """Only transmission types driven by an action term export their keys."""
+  env = _make_mixed_transmission_env(device, actions, actuators)
+  metadata = get_base_metadata(env, run_path="dummy/run")
+
+  assert _transmission_keys(metadata) == set(expected)
+  for key, value in expected.items():
+    if key.endswith("_names"):
+      assert metadata[key] == value
+    else:
+      assert metadata[key] == pytest.approx(value, nan_ok=True)
+
+  env.close()
+
+
+@pytest.mark.parametrize(
+  "actuator,expected_stiffness,expected_damping",
+  [
+    pytest.param(
+      BuiltinPositionActuatorCfg(
+        target_names_expr=("j1", "j2"), stiffness=20, damping=2
+      ),
+      20.0,
+      2.0,
+      id="builtin_position",
+    ),
+    pytest.param(
+      BuiltinPdActuatorCfg(target_names_expr=("j1", "j2"), stiffness=20, damping=2),
+      20.0,
+      2.0,
+      id="builtin_pd",
+    ),
+    pytest.param(
+      IdealPdActuatorCfg(target_names_expr=("j1", "j2"), stiffness=20, damping=2),
+      20.0,
+      2.0,
+      id="ideal_pd",
+    ),
+    pytest.param(
+      BuiltinVelocityActuatorCfg(target_names_expr=("j1", "j2"), damping=2),
+      float("nan"),
+      2.0,
+      id="builtin_velocity",
+    ),
+    pytest.param(
+      BuiltinMotorActuatorCfg(target_names_expr=("j1", "j2"), effort_limit=5.0),
+      float("nan"),
+      float("nan"),
+      id="builtin_motor",
+    ),
+  ],
+)
+def test_get_base_metadata_actuator_gains(
+  device, actuator, expected_stiffness, expected_damping
+):
+  """PD gains come from the actuator config, NaN when the config has none."""
+  env = _make_mixed_transmission_env(
+    device,
+    actions={
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=(".*",)
+      )
+    },
+    actuators=(actuator,),
+  )
+  metadata = get_base_metadata(env, run_path="dummy/run")
+
+  assert metadata["joint_stiffness"] == pytest.approx(
+    [expected_stiffness] * 2, nan_ok=True
+  )
+  assert metadata["joint_damping"] == pytest.approx([expected_damping] * 2, nan_ok=True)
+
+  env.close()
+
+
+@pytest.mark.parametrize(
+  "action,target,expected_offset",
+  [
+    pytest.param(
+      mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=("j2",), scale=2.0
+      ),
+      "j2",
+      -0.1,  # Default joint position.
+      id="joint_position",
+    ),
+    pytest.param(
+      mdp.JointVelocityActionCfg(
+        entity_name="robot", actuator_names=("j2",), scale=2.0
+      ),
+      "j2",
+      0.5,  # Default joint velocity.
+      id="joint_velocity",
+    ),
+    pytest.param(
+      mdp.RelativeJointPositionActionCfg(
+        entity_name="robot", actuator_names=("j2",), scale=2.0
+      ),
+      "j2",
+      0.0,
+      id="relative_joint_position",
+    ),
+    pytest.param(
+      mdp.TendonEffortActionCfg(
+        entity_name="robot", actuator_names=("ten",), scale=2.0, offset=0.1
+      ),
+      "ten",
+      0.1,
+      id="explicit_offset",
+    ),
+  ],
+)
+def test_get_base_metadata_action_scale_and_offset(
+  device, action, target, expected_offset
+):
+  """Scale and offset are read from the action term, including its defaults."""
+  env = _make_mixed_transmission_env(device, {"action": action})
+  metadata = get_base_metadata(env, run_path="dummy/run")
+
+  assert metadata["action_names"] == [target]
+  assert metadata["action_scale"] == pytest.approx(2.0)
+  assert metadata["action_offset"] == pytest.approx(expected_offset)
+
+  env.close()
+
+
+def test_get_base_metadata_action_order(device):
+  """Action metadata follows action term order, not transmission order."""
+  env = _make_mixed_transmission_env(
+    device,
+    actions={
+      "site_effort": mdp.SiteEffortActionCfg(
+        entity_name="robot", actuator_names=("tip",), scale=3.0, offset=0.3
+      ),
+      "tendon_len": mdp.TendonLengthActionCfg(
+        entity_name="robot", actuator_names=("ten",), scale=2.0, offset=0.2
+      ),
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=(".*",), scale={"j1": 0.5, "j2": 0.25}
+      ),
+    },
+  )
+  metadata = get_base_metadata(env, run_path="dummy/run")
+
+  assert metadata["action_names"] == ["tip", "ten", "j1", "j2"]
+  assert metadata["action_scale"] == pytest.approx([3.0, 2.0, 0.5, 0.25])
+  assert metadata["action_offset"] == pytest.approx([0.3, 0.2, 0.2, -0.1])
+
+  env.close()
+
+
+@pytest.mark.parametrize("tendon_value,expected", [(0.5, 0.5), (0.7, [0.5, 0.5, 0.7])])
+def test_get_base_metadata_collapses_uniform_scale_and_offset(
+  device, tendon_value, expected
+):
+  """Scale and offset become scalars when all action dims share one value."""
+  env = _make_mixed_transmission_env(
+    device,
+    actions={
+      # Dict scale and offset are stored as tensors, float ones as floats.
+      "joint_effort": mdp.JointEffortActionCfg(
+        entity_name="robot",
+        actuator_names=(".*",),
+        scale={".*": 0.5},
+        offset={".*": 0.5},
+      ),
+      "tendon_effort": mdp.TendonEffortActionCfg(
+        entity_name="robot",
+        actuator_names=("ten",),
+        scale=tendon_value,
+        offset=tendon_value,
+      ),
+    },
+  )
+  metadata = get_base_metadata(env, run_path="dummy/run")
+
+  assert metadata["action_scale"] == pytest.approx(expected)
+  assert metadata["action_offset"] == pytest.approx(expected)
+
+  env.close()
+
+
+@dataclass(kw_only=True)
+class _NonBaseActionCfg(ActionTermCfg):
+  def build(self, env: ManagerBasedRlEnv) -> "_NonBaseAction":
+    return _NonBaseAction(self, env)
+
+
+class _NonBaseAction(ActionTerm):
+  """Action term that does not derive from BaseAction."""
+
+  def __init__(self, cfg: _NonBaseActionCfg, env: ManagerBasedRlEnv):
+    super().__init__(cfg=cfg, env=env)
+    self._raw_actions = torch.zeros(self.num_envs, 2, device=self.device)
+
+  @property
+  def action_dim(self) -> int:
+    return 2
+
+  @property
+  def raw_action(self) -> torch.Tensor:
+    return self._raw_actions
+
+  def process_actions(self, actions: torch.Tensor) -> None:
+    self._raw_actions[:] = actions
+
+  def apply_actions(self) -> None:
+    pass
+
+
+def test_get_base_metadata_non_base_action_padded_with_nan(device):
+  """A non-BaseAction term keeps its names, with NaN scale and offset."""
+  env = _make_mixed_transmission_env(
+    device,
+    actions={
+      "joint_pos": mdp.JointPositionActionCfg(
+        entity_name="robot", actuator_names=("j1",), scale=0.5
+      ),
+      "custom": _NonBaseActionCfg(entity_name="robot"),
+    },
+  )
+  with pytest.warns(UserWarning, match="Action term 'custom'"):
+    metadata = get_base_metadata(env, run_path="dummy/run")
+
+  assert metadata["action_names"] == ["j1", "custom_0", "custom_1"]
+  for key in ("action_scale", "action_offset"):
+    values = metadata[key]
+    assert isinstance(values, list)
+    assert not math.isnan(values[0])
+    assert all(math.isnan(v) for v in values[1:])
+  # The rest of the export is unaffected.
+  assert _transmission_keys(metadata) == TRANSMISSION_KEYS["joint"]
 
   env.close()
