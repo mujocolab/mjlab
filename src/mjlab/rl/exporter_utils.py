@@ -6,6 +6,7 @@ import warnings
 import onnx
 import torch
 
+from mjlab.actuator import XmlActuator
 from mjlab.actuator.actuator import TransmissionType
 from mjlab.entity import Entity
 from mjlab.envs import ManagerBasedRlEnv
@@ -49,29 +50,44 @@ def get_base_metadata(
   """
   robot: Entity = env.scene["robot"]
   # Gains come from the actuator config. Actuators without a stiffness or damping
-  # field (e.g. motors) report NaN. Names may collide across transmission types,
-  # so the key includes the type.
+  # field (e.g. motors) report NaN. XML actuators have no gains in their config,
+  # so theirs are read from the MuJoCo gain and bias parameters instead. Names may
+  # collide across transmission types, so the key includes the type.
   gains: dict[tuple[TransmissionType, str], tuple[float, float]] = {}
+  mj_model = env.sim.mj_model
   for actuator in robot.actuators:
-    stiffness = getattr(actuator.cfg, "stiffness", float("nan"))
-    damping = getattr(actuator.cfg, "damping", float("nan"))
-    for name in actuator.target_names:
-      gains[(actuator.transmission_type, name)] = (stiffness, damping)
+    if isinstance(actuator, XmlActuator):
+      ctrl_ids = actuator.global_ctrl_ids.cpu().tolist()
+      target_gains = zip(
+        mj_model.actuator_gainprm[ctrl_ids, 0].tolist(),
+        (-mj_model.actuator_biasprm[ctrl_ids, 2]).tolist(),
+        strict=True,
+      )
+    else:
+      stiffness = getattr(actuator.cfg, "stiffness", float("nan"))
+      damping = getattr(actuator.cfg, "damping", float("nan"))
+      target_gains = [(stiffness, damping)] * len(actuator.target_names)
+    for name, kp_kd in zip(actuator.target_names, target_gains, strict=True):
+      gains[(actuator.transmission_type, name)] = kp_kd
 
   action_names: list[str] = []
+  action_target_names: list[str] = []
+  action_terms_dim: list[int] = []
   action_scale: list[float] = []
   action_offset: list[float] = []
   driven_targets: dict[TransmissionType, set[str]] = {}
   default_tendon_pos: dict[str, float] = {}
   for term_name in env.action_manager.active_terms:
     action = env.action_manager.get_term(term_name)
+    action_names.append(term_name)
+    action_terms_dim.append(action.action_dim)
     if not isinstance(action, BaseAction):
       warnings.warn(
         f"Action term '{term_name}' ({type(action).__name__}) is not a "
         "BaseAction. Its scale and offset are exported as NaN.",
         stacklevel=2,
       )
-      action_names.extend(f"{term_name}_{i}" for i in range(action.action_dim))
+      action_target_names.extend(f"{term_name}_{i}" for i in range(action.action_dim))
       action_scale.extend([float("nan")] * action.action_dim)
       action_offset.extend([float("nan")] * action.action_dim)
       continue
@@ -79,7 +95,7 @@ def get_base_metadata(
       v[0].cpu().tolist() if isinstance(v, torch.Tensor) else [v] * action.action_dim
       for v in (action.scale, action.offset)
     )
-    action_names.extend(action.target_names)
+    action_target_names.extend(action.target_names)
     action_scale.extend(scale)
     action_offset.extend(offset)
     driven_targets.setdefault(action.cfg.transmission_type, set()).update(
@@ -145,8 +161,6 @@ def get_base_metadata(
     observation_term_flatten_history_dim.append(cfg.flatten_history_dim)
     observation_term_history_length.append(cfg.history_length)
 
-  is_uniform_scale = len(set(action_scale)) == 1 and not math.isnan(action_scale[0])
-  is_uniform_offset = len(set(action_offset)) == 1 and not math.isnan(action_offset[0])
   return {
     "run_path": run_path,
     **transmission_metadata,
@@ -158,8 +172,10 @@ def get_base_metadata(
     "observation_terms_history_length": observation_term_history_length,
     "observation_terms_clip": observation_term_clip,
     "action_names": action_names,
-    "action_scale": action_scale[0] if is_uniform_scale else action_scale,
-    "action_offset": action_offset[0] if is_uniform_offset else action_offset,
+    "action_target_names": action_target_names,
+    "action_terms_dim": action_terms_dim,
+    "action_scale": action_scale,
+    "action_offset": action_offset,
   }
 
 

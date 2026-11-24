@@ -176,7 +176,7 @@ ROBOT_XML_UNDERACTUATED = """
     </body>
   </worldbody>
   <actuator>
-    <motor name="actuator1" joint="joint2" gear="1.0"/>
+    {actuator}
   </actuator>
 </mujoco>
 """
@@ -187,10 +187,20 @@ def device():
   return get_test_device()
 
 
-def test_get_base_metadata_skips_non_actuated_joints(device):
+@pytest.mark.parametrize(
+  "actuator_xml,expected_stiffness,expected_damping",
+  [
+    pytest.param('<motor joint="joint2" gear="1.0"/>', 1.0, 0.0, id="motor"),
+    pytest.param('<position joint="joint2" kp="20" kv="2"/>', 20.0, 2.0, id="position"),
+  ],
+)
+def test_get_base_metadata_skips_non_actuated_joints(
+  device, actuator_xml, expected_stiffness, expected_damping
+):
   """get_base_metadata handles non-actuated joints without KeyError."""
+  xml = ROBOT_XML_UNDERACTUATED.format(actuator=actuator_xml)
   robot_cfg = EntityCfg(
-    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
+    spec_fn=lambda: mujoco.MjSpec.from_string(xml),
     articulation=EntityArticulationInfoCfg(
       actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
     ),
@@ -236,10 +246,10 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
   assert "joint1" in joint_names_meta
   assert "joint2" in joint_names_meta
 
-  # Gains are only listed for actuated joints (joint2). XML actuators have no
-  # stiffness or damping field, so both are NaN.
-  assert metadata["joint_stiffness"] == pytest.approx([float("nan")], nan_ok=True)
-  assert metadata["joint_damping"] == pytest.approx([float("nan")], nan_ok=True)
+  # Gains are only listed for actuated joints (joint2). XML actuators have no gains
+  # in their config, so they are read from the MuJoCo gain and bias parameters.
+  assert metadata["joint_stiffness"] == pytest.approx([expected_stiffness])
+  assert metadata["joint_damping"] == pytest.approx([expected_damping])
 
   observation_names = metadata["observation_names"]
   assert isinstance(observation_names, list)
@@ -276,7 +286,9 @@ def test_get_base_metadata_skips_non_actuated_joints(device):
 def test_get_base_metadata_multiple_terms_scale_clip(device):
   """get_base_metadata preserves obs term ordering and handles scalar/vector tensor scale, tuple scale, and non-default clip."""
   robot_cfg = EntityCfg(
-    spec_fn=lambda: mujoco.MjSpec.from_string(ROBOT_XML_UNDERACTUATED),
+    spec_fn=lambda: mujoco.MjSpec.from_string(
+      ROBOT_XML_UNDERACTUATED.format(actuator='<motor joint="joint2" gear="1.0"/>')
+    ),
     articulation=EntityArticulationInfoCfg(
       actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
     ),
@@ -676,9 +688,9 @@ def test_get_base_metadata_action_scale_and_offset(
   env = _make_mixed_transmission_env(device, {"action": action})
   metadata = get_base_metadata(env, run_path="dummy/run")
 
-  assert metadata["action_names"] == [target]
-  assert metadata["action_scale"] == pytest.approx(2.0)
-  assert metadata["action_offset"] == pytest.approx(expected_offset)
+  assert metadata["action_target_names"] == [target]
+  assert metadata["action_scale"] == pytest.approx([2.0])
+  assert metadata["action_offset"] == pytest.approx([expected_offset])
 
   env.close()
 
@@ -701,18 +713,20 @@ def test_get_base_metadata_action_order(device):
   )
   metadata = get_base_metadata(env, run_path="dummy/run")
 
-  assert metadata["action_names"] == ["tip", "ten", "j1", "j2"]
+  assert metadata["action_names"] == ["site_effort", "tendon_len", "joint_pos"]
+  assert metadata["action_target_names"] == ["tip", "ten", "j1", "j2"]
+  assert metadata["action_terms_dim"] == [1, 1, 2]
   assert metadata["action_scale"] == pytest.approx([3.0, 2.0, 0.5, 0.25])
   assert metadata["action_offset"] == pytest.approx([0.3, 0.2, 0.2, -0.1])
 
   env.close()
 
 
-@pytest.mark.parametrize("tendon_value,expected", [(0.5, 0.5), (0.7, [0.5, 0.5, 0.7])])
-def test_get_base_metadata_collapses_uniform_scale_and_offset(
-  device, tendon_value, expected
-):
-  """Scale and offset become scalars when all action dims share one value."""
+@pytest.mark.parametrize(
+  "tendon_value,expected", [(0.5, [0.5] * 3), (0.7, [0.5, 0.5, 0.7])]
+)
+def test_get_base_metadata_scale_and_offset_are_lists(device, tendon_value, expected):
+  """Scale and offset are per-dim lists, even when all dims share one value."""
   env = _make_mixed_transmission_env(
     device,
     actions={
@@ -733,8 +747,9 @@ def test_get_base_metadata_collapses_uniform_scale_and_offset(
   )
   metadata = get_base_metadata(env, run_path="dummy/run")
 
-  assert metadata["action_scale"] == pytest.approx(expected)
-  assert metadata["action_offset"] == pytest.approx(expected)
+  for key in ("action_scale", "action_offset"):
+    assert isinstance(metadata[key], list)
+    assert metadata[key] == pytest.approx(expected)
 
   env.close()
 
@@ -781,7 +796,9 @@ def test_get_base_metadata_non_base_action_padded_with_nan(device):
   with pytest.warns(UserWarning, match="Action term 'custom'"):
     metadata = get_base_metadata(env, run_path="dummy/run")
 
-  assert metadata["action_names"] == ["j1", "custom_0", "custom_1"]
+  assert metadata["action_names"] == ["joint_pos", "custom"]
+  assert metadata["action_target_names"] == ["j1", "custom_0", "custom_1"]
+  assert metadata["action_terms_dim"] == [1, 2]
   for key in ("action_scale", "action_offset"):
     values = metadata[key]
     assert isinstance(values, list)
@@ -789,5 +806,29 @@ def test_get_base_metadata_non_base_action_padded_with_nan(device):
     assert all(math.isnan(v) for v in values[1:])
   # The rest of the export is unaffected.
   assert _transmission_keys(metadata) == TRANSMISSION_KEYS["joint"]
+
+  env.close()
+
+
+@pytest.mark.parametrize("num_terms", [1, 2])
+def test_get_base_metadata_only_non_base_actions(device, num_terms):
+  """With only non-BaseAction terms, scale and offset are lists of NaN."""
+  env = _make_mixed_transmission_env(
+    device,
+    actions={
+      f"custom{i}": _NonBaseActionCfg(entity_name="robot") for i in range(num_terms)
+    },
+  )
+  with pytest.warns(UserWarning, match="is not a BaseAction"):
+    metadata = get_base_metadata(env, run_path="dummy/run")
+
+  assert metadata["action_terms_dim"] == [2] * num_terms
+  for key in ("action_scale", "action_offset"):
+    values = metadata[key]
+    assert isinstance(values, list)
+    assert len(values) == 2 * num_terms
+    assert all(math.isnan(v) for v in values)
+  # No term drives a transmission, so no transmission fields are exported.
+  assert _transmission_keys(metadata) == set()
 
   env.close()
