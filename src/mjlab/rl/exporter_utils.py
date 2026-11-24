@@ -1,6 +1,5 @@
 """Shared utilities for ONNX policy export across RL tasks."""
 
-import math
 import warnings
 
 import onnx
@@ -72,7 +71,6 @@ def get_base_metadata(
 
   action_names: list[str] = []
   action_target_names: list[str] = []
-  action_terms_dim: list[int] = []
   action_scale: list[float] = []
   action_offset: list[float] = []
   driven_targets: dict[TransmissionType, set[str]] = {}
@@ -80,7 +78,6 @@ def get_base_metadata(
   for term_name in env.action_manager.active_terms:
     action = env.action_manager.get_term(term_name)
     action_names.append(term_name)
-    action_terms_dim.append(action.action_dim)
     if not isinstance(action, BaseAction):
       warnings.warn(
         f"Action term '{term_name}' ({type(action).__name__}) is not a "
@@ -130,18 +127,14 @@ def get_base_metadata(
         default_tendon_pos.get(n, float("nan")) for n in names
       ]
 
-  observation_term_dim: list = []
   observation_term_scale: list = []
   observation_term_flatten_history_dim: list = []
   observation_term_history_length: list = []
   observation_term_clip: list = []
   observation_names = env.observation_manager.active_terms["actor"]
-  observation_dims = env.observation_manager.group_obs_term_dim["actor"]
 
-  for active_term, dims in zip(observation_names, observation_dims, strict=True):
+  for active_term in observation_names:
     cfg = env.observation_manager.get_term_cfg("actor", active_term)
-
-    observation_term_dim.append(math.prod(dims))
 
     if cfg.scale is None:
       observation_term_scale.append(1.0)
@@ -166,14 +159,12 @@ def get_base_metadata(
     **transmission_metadata,
     "command_names": list(env.command_manager.active_terms),
     "observation_names": observation_names,
-    "observation_terms_dim": observation_term_dim,
     "observation_terms_scale": observation_term_scale,
     "observation_terms_flatten_history_dim": observation_term_flatten_history_dim,
     "observation_terms_history_length": observation_term_history_length,
     "observation_terms_clip": observation_term_clip,
     "action_names": action_names,
     "action_target_names": action_target_names,
-    "action_terms_dim": action_terms_dim,
     "action_scale": action_scale,
     "action_offset": action_offset,
   }

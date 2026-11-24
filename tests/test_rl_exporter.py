@@ -265,9 +265,6 @@ def test_get_base_metadata_skips_non_actuated_joints(
   assert len(observation_history_length) == len(observation_names)
   assert observation_history_length[0] == 5
 
-  # Two joints with a flattened history of 5.
-  assert metadata["observation_terms_dim"] == [10]
-
   observation_flatten_history_dim = metadata["observation_terms_flatten_history_dim"]
   assert isinstance(observation_flatten_history_dim, list)
   assert len(observation_flatten_history_dim) == len(observation_names)
@@ -715,7 +712,6 @@ def test_get_base_metadata_action_order(device):
 
   assert metadata["action_names"] == ["site_effort", "tendon_len", "joint_pos"]
   assert metadata["action_target_names"] == ["tip", "ten", "j1", "j2"]
-  assert metadata["action_terms_dim"] == [1, 1, 2]
   assert metadata["action_scale"] == pytest.approx([3.0, 2.0, 0.5, 0.25])
   assert metadata["action_offset"] == pytest.approx([0.3, 0.2, 0.2, -0.1])
 
@@ -798,7 +794,6 @@ def test_get_base_metadata_non_base_action_padded_with_nan(device):
 
   assert metadata["action_names"] == ["joint_pos", "custom"]
   assert metadata["action_target_names"] == ["j1", "custom_0", "custom_1"]
-  assert metadata["action_terms_dim"] == [1, 2]
   for key in ("action_scale", "action_offset"):
     values = metadata[key]
     assert isinstance(values, list)
@@ -822,7 +817,7 @@ def test_get_base_metadata_only_non_base_actions(device, num_terms):
   with pytest.warns(UserWarning, match="is not a BaseAction"):
     metadata = get_base_metadata(env, run_path="dummy/run")
 
-  assert metadata["action_terms_dim"] == [2] * num_terms
+  assert metadata["action_names"] == [f"custom{i}" for i in range(num_terms)]
   for key in ("action_scale", "action_offset"):
     values = metadata[key]
     assert isinstance(values, list)

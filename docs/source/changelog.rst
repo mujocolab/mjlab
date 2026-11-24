@@ -27,9 +27,9 @@ Added
   The velocity, manipulation and tracking runners now share this export path.
 - The Unitree G1 model limits ankle roll and pitch jointly, with fixed tendons that
   model the coupled mechanical stops of the push-rod ankle.
-- ONNX metadata describes every action term. New fields ``action_names`` and
-  ``action_terms_dim`` give the name (e.g. ``joint_pos``) and size of each action
-  term, in ``action_manager.active_terms`` order. ``action_target_names``,
+- ONNX metadata describes every action term. The new field ``action_names`` gives
+  the name (e.g. ``joint_pos``) of each action term, in
+  ``action_manager.active_terms`` order. ``action_target_names``,
   ``action_scale`` and the new ``action_offset`` follow the policy output order,
   with ``action_target_names`` giving the joint, tendon or site each output drives.
   Action terms that are not a ``BaseAction`` are exported with ``<term>_<i>`` target
@@ -43,8 +43,6 @@ Added
   ``<type>_stiffness`` and ``<type>_damping`` list the actuated ones among them.
   ``default_tendon_pos`` is the offset of the tendon length action driving each
   tendon, and NaN for tendons not driven by one.
-- ONNX metadata field ``observation_terms_dim`` gives the flattened size of each
-  actor observation term.
 
 Changed
 ^^^^^^^
