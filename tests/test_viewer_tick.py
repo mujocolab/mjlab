@@ -162,7 +162,7 @@ def test_single_step_ignored_when_running():
 
 def test_error_pauses():
   v = FakeViewer(step_dt=0.01)
-  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)  # type: ignore[attr-defined]
+  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)
   v.policy = MagicMock(side_effect=RuntimeError("test error"))
 
   v.inject_tick(dt=0.02)
@@ -204,7 +204,7 @@ def test_reset_without_policy_reset():
 def test_step_resets_policy_for_done_envs():
   """_execute_step() passes the step's dones to policy.reset()."""
   v = FakeViewer(step_dt=0.01)
-  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)  # type: ignore[attr-defined]
+  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)
   dones = torch.tensor([0, 1, 0])
   v.env = MagicMock()
   v.env.step.return_value = (MagicMock(), MagicMock(), dones, {})
@@ -214,10 +214,25 @@ def test_step_resets_policy_for_done_envs():
   v.policy.reset.assert_called_once_with(dones)
 
 
+def test_step_resets_policy_on_truncation():
+  """_execute_step() treats truncations from a 5-tuple step as dones."""
+  v = FakeViewer(step_dt=0.01)
+  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)
+  terminated = torch.tensor([False, True, False])
+  truncated = torch.tensor([False, False, True])
+  v.env = MagicMock()
+  v.env.step.return_value = (MagicMock(), MagicMock(), terminated, truncated, {})
+  v.policy = MagicMock()
+
+  assert v._execute_step()
+  (dones,), _ = v.policy.reset.call_args
+  assert dones.tolist() == [False, True, True]
+
+
 def test_step_without_policy_reset():
   """_execute_step() works when the policy has no reset method."""
   v = FakeViewer(step_dt=0.01)
-  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)  # type: ignore[attr-defined]
+  v._execute_step = BaseViewer._execute_step.__get__(v, FakeViewer)
   v.env = MagicMock()
   v.env.step.return_value = (MagicMock(), MagicMock(), torch.tensor([1]), {})
   v.policy = lambda obs: obs
@@ -282,7 +297,7 @@ def test_no_spiral():
     time.sleep(0.005)
     return original()
 
-  v._execute_step = slow_step  # type: ignore[assignment]
+  v._execute_step = slow_step
 
   start = time.perf_counter()
   v.inject_tick(dt=1.0 / 60.0)

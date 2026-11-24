@@ -1356,10 +1356,9 @@ def build_variant_model(
 
     # Resolve world-to-variant assignment. The metadata's ``assignment``
     # is either a tuple of weights (from None or dict on the cfg) or a
-    # callable. Use ``callable()`` for the dispatch since tuples are
-    # not callable.
+    # callable.
     assignment_spec = metadata.assignment
-    if callable(assignment_spec):
+    if not isinstance(assignment_spec, tuple):
       assignment = list(assignment_spec(nworld))
       if len(assignment) != nworld:
         raise ValueError(

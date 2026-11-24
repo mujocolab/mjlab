@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 import torch
 
@@ -52,7 +53,7 @@ class TerrainHeightSensor(RayCastSensor):
   @property
   def data(self) -> TerrainHeightData:
     """Raycast data with per-frame terrain clearance heights."""
-    return super().data  # type: ignore[return-value]
+    return cast(TerrainHeightData, super().data)
 
   def _compute_data(self) -> TerrainHeightData:
     raw = super()._compute_data()

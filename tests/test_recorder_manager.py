@@ -129,11 +129,11 @@ def test_record_pre_reset_obs_buf_is_previous_step(mock_env: Mock) -> None:
   # checker. The point of this test is lifecycle timing, not data structure.
   class ObsCapture(RecorderTerm):
     def record_pre_reset(self, env_ids: torch.Tensor) -> None:
-      obs: torch.Tensor = self._env.obs_buf  # type: ignore[assignment]
+      obs: torch.Tensor = self._env.obs_buf  # ty: ignore[invalid-assignment]
       seen["pre_reset_obs"] = obs[env_ids].clone()
 
     def record_post_step(self) -> None:
-      obs: torch.Tensor = self._env.obs_buf  # type: ignore[assignment]
+      obs: torch.Tensor = self._env.obs_buf  # ty: ignore[invalid-assignment]
       seen["post_step_obs"] = obs.clone()
 
   prev_obs = torch.arange(8, dtype=torch.float).reshape(4, 2)
@@ -163,7 +163,7 @@ def test_record_post_reset_fires_after_obs_are_fresh(mock_env: Mock) -> None:
 
   class ResetObsCapture(RecorderTerm):
     def record_post_reset(self, env_ids: torch.Tensor) -> None:
-      obs: torch.Tensor = self._env.obs_buf  # type: ignore[assignment]
+      obs: torch.Tensor = self._env.obs_buf  # ty: ignore[invalid-assignment]
       seen["obs"] = obs[env_ids].clone()
 
   reset_obs = torch.ones(4, 2) * 99.0
@@ -301,7 +301,7 @@ def test_none_terms_skipped(mock_env: Mock) -> None:
     "valid": RecorderTermCfg(func=_CountingRecorder, params={}),
     "skipped": None,
   }
-  manager = RecorderManager(cfg, mock_env)  # type: ignore[arg-type]
+  manager = RecorderManager(cfg, mock_env)  # ty: ignore[invalid-argument-type]
   assert manager.active_terms == ["valid"]
   assert len(manager._terms) == 1
 

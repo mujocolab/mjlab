@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import warnings
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, cast
@@ -12,10 +13,10 @@ import torch
 import warp as wp
 
 from mjlab.entity.variants import VARIANT_DEPENDENT_FIELDS, build_variant_model
-from mjlab.managers.event_manager import RecomputeLevel
 from mjlab.sim.randomization import expand_model_fields
 from mjlab.sim.sim_data import TorchArray, WarpBridge
 from mjlab.utils.nan_guard import NanGuard, NanGuardCfg
+from mjlab.utils.spec import compile_spec
 
 if TYPE_CHECKING:
   from mjlab.entity.variants import VariantMetadata
@@ -208,11 +209,11 @@ class Simulation:
 
   CUDA Graph Capture
   ------------------
-  On CUDA devices with memory pools enabled, the simulation captures CUDA graphs
-  for ``step()``, ``forward()``, and ``reset()`` operations. Graph capture records
-  a sequence of GPU kernels and their memory addresses, then replays the entire
-  sequence with a single kernel launch, eliminating CPU overhead from repeated
-  kernel dispatches.
+  On CPU, and on CUDA devices with memory pools enabled, the simulation captures
+  graphs for ``step()``, ``forward()``, and ``reset()`` operations. Graph capture
+  records a sequence of kernels and their memory addresses, then replays the entire
+  sequence with a single launch, eliminating Python overhead from repeated kernel
+  dispatches. On CPU this makes stepping several times faster.
 
   **Important:** A captured graph holds pointers to the GPU arrays that existed
   at capture time. If those arrays are later replaced (e.g., via
@@ -256,7 +257,7 @@ class Simulation:
     if spec is not None and variant_info:
       self._init_with_variants(spec, variant_info)
     elif spec is not None:
-      compiled = spec.compile()
+      compiled = compile_spec(spec)
       cfg.mujoco.apply(compiled)
       self._init_with_model(compiled)
     elif model is not None:
@@ -345,8 +346,9 @@ class Simulation:
     self._model_bridge = WarpBridge(self._wp_model, nworld=self.num_envs)
     self._data_bridge = WarpBridge(self._wp_data)
     self._sensor_context: SensorContext | None = None
+    self._data_listeners: list[Callable[[], None]] = []
 
-    self.use_cuda_graph = self._should_use_cuda_graph()
+    self.use_cuda_graph = self._can_capture_graphs()
     self.create_graph()
 
     self.nan_guard = NanGuard(self.cfg.nan_guard, self.num_envs, self._mj_model)
@@ -363,7 +365,7 @@ class Simulation:
     - ``__init__()`` during simulation initialization
     - ``expand_model_fields()`` after replacing model arrays
 
-    On CPU devices or when memory pools are disabled, this is a no-op.
+    On CUDA devices without memory pools, this is a no-op.
     """
     self.step_graph = None
     self.forward_graph = None
@@ -476,18 +478,14 @@ class Simulation:
       ).clone()
     return self._default_model_fields[field]
 
-  def recompute_constants(self, level: RecomputeLevel) -> None:
+  def recompute_constants(self, groups: mjwarp.SetConstGroup) -> None:
     """Recompute derived model constants after domain randomization.
 
     Args:
-      level: Which constants to recompute. ``set_const`` is the most
-        expensive (covers body_mass changes), ``set_const_0`` covers
-        qpos0/body_inertia/dof_armature changes, and ``set_const_fixed``
-        is the cheapest (covers body_gravcomp changes).
+      groups: mujoco_warp.SetConstGroup flags selecting what to recompute.
     """
-    fn = getattr(mjwarp, level.name)
     with wp.ScopedDevice(self.wp_device):
-      fn(self._wp_model, self._wp_data)
+      mjwarp.set_const(self._wp_model, self._wp_data, groups=groups)
 
   def forward(self) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -495,6 +493,7 @@ class Simulation:
         wp.capture_launch(self.forward_graph)
       else:
         mjwarp.forward(self.wp_model, self.wp_data)
+    self._notify_data_changed()
 
   def step(self) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -503,6 +502,7 @@ class Simulation:
           wp.capture_launch(self.step_graph)
         else:
           mjwarp.step(self.wp_model, self.wp_data)
+    self._notify_data_changed()
 
   def reset(self, env_ids: torch.Tensor | None = None) -> None:
     with wp.ScopedDevice(self.wp_device):
@@ -516,6 +516,11 @@ class Simulation:
         wp.capture_launch(self.reset_graph)
       else:
         mjwarp.reset_data(self.wp_model, self.wp_data, reset=self._reset_mask_wp)
+    self._notify_data_changed()
+
+  def add_data_listener(self, fn: Callable[[], None]) -> None:
+    """Call ``fn`` whenever ``step()``, ``forward()`` or ``reset()`` changes data."""
+    self._data_listeners.append(fn)
 
   def set_sensor_context(self, ctx: SensorContext) -> None:
     """Wire a SensorContext for camera/raycast sensing.
@@ -549,6 +554,10 @@ class Simulation:
 
   # Private methods.
 
+  def _notify_data_changed(self) -> None:
+    for fn in self._data_listeners:
+      fn()
+
   def _sense_kernel(self) -> None:
     """GPU kernel sequence for sensing (captured in sense_graph)."""
     assert self._sensor_context is not None
@@ -564,10 +573,10 @@ class Simulation:
     for sensor in ctx.raycast_sensors:
       sensor.raycast_kernel(rc=rc)
 
-  def _should_use_cuda_graph(self) -> bool:
-    """Determine if CUDA graphs can be used based on device and driver version."""
+  def _can_capture_graphs(self) -> bool:
+    """Whether Warp can capture graphs on this device."""
     if not self.wp_device.is_cuda:
-      return False
+      return True  # Warp captures and replays on CPU too.
 
     driver_ver = wp.get_cuda_driver_version()
     has_mempool = wp.is_mempool_enabled(self.wp_device)

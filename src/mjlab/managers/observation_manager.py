@@ -151,9 +151,10 @@ class ObservationManager(ManagerBase):
     msg = f"<ObservationManager> contains {len(self._group_obs_term_names)} groups.\n"
     for group_name, group_dim in self._group_obs_dim.items():
       table = PrettyTable()
-      table.title = f"Active Observation Terms in Group: '{group_name}'"
+      title = f"Active Observation Terms in Group: '{group_name}'"
       if self._group_obs_concatenate[group_name]:
-        table.title += f" (shape: {group_dim})"  # type: ignore
+        title += f" (shape: {group_dim})"
+      table.title = title
       table.field_names = ["Index", "Name", "Shape"]
       table.align["Name"] = "l"
       obs_terms = zip(
@@ -190,7 +191,7 @@ class ObservationManager(ManagerBase):
         buffers = obs_buffer[group_name]
         assert isinstance(buffers, dict)
         for name, term in buffers.items():
-          terms.append((group_name + "-" + name, term[env_idx].cpu().tolist()))  # type: ignore[unsupported-operator]
+          terms.append((group_name + "-" + name, term[env_idx].cpu().tolist()))
         continue
 
       idx = 0

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Generate type stubs for MuJoCo using pybind11-stubgen.
-# This helps suppress pyright/ty errors for MuJoCo's C++ bindings.
+# This helps suppress ty errors for MuJoCo's C++ bindings.
 #
 # The output is post-processed by postprocess_stubs.py to make it
 # platform-independent (it drops the OpenGL backend stubs, which differ between

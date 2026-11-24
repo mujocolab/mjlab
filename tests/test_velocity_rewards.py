@@ -51,8 +51,7 @@ def _make_env_and_reward(
   if body_quat_w is None:
     body_quat_w = _identity_quat(B)
 
-  # Mock asset data. Use explicit asset_cfg with no body_names so
-  # body_ids stays None and the reward uses root_link_quat_w.
+  # Mock asset data. An empty body selection uses root_link_quat_w.
   asset = MagicMock()
   asset.data.root_link_quat_w = body_quat_w
   asset.data.root_link_pos_w = torch.zeros(B, 3)
@@ -188,6 +187,22 @@ def test_batch_consistency():
   assert r[1].item() > 0.99
   assert r[2].item() < 0.7
   assert r[3].item() > 0.99
+
+
+def test_default_asset_cfg_uses_root_on_multi_body_entity():
+  """An unset body selection uses the root, not every body."""
+  env, reward, params = _make_env_and_reward()
+  asset = env.scene["robot"]
+  asset.data.body_link_quat_w = torch.cat(
+    [_identity_quat(1), _quat_from_roll(math.radians(60))]
+  ).unsqueeze(0)  # [1, 2, 4]: upright root, tilted child.
+
+  r = reward(env, std=params["std"], asset_cfg=SceneEntityCfg("robot"))
+  assert r.shape == (1,)
+  assert r.item() > 0.99
+
+  child_cfg = SceneEntityCfg("robot", body_ids=[1])
+  assert reward(env, std=params["std"], asset_cfg=child_cfg).item() < 0.6
 
 
 def test_feet_swing_height_reset_clears_peak_heights():

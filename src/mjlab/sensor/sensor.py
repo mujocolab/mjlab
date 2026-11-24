@@ -98,8 +98,10 @@ class Sensor(ABC, Generic[T]):
 
     This property returns the sensor's current data in its specific type.
     The data type is specified by the type parameter T. The data is cached
-    per-step and recomputed only when the cache is invalidated (after
-    `reset()` or `update()` is called).
+    and recomputed only after the cache is invalidated: by `reset()` and
+    `update()`, and, inside an env, whenever the simulation data changes
+    (`step()`, `forward()`, `reset()`) or `sense()` refreshes ray and render
+    buffers.
 
     Returns:
       The sensor data in the format specified by type parameter T.
@@ -115,7 +117,9 @@ class Sensor(ABC, Generic[T]):
     """Compute and return the sensor data.
 
     Subclasses must implement this method to compute the sensor's data.
-    This is called by the `data` property when the cache is invalid.
+    This is called by the `data` property when the cache is invalid, possibly
+    more than once per env step, so it must not have side effects. Keep
+    per-step state in `update()`.
 
     Returns:
       The computed sensor data.

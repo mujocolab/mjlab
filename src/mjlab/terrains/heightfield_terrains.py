@@ -825,9 +825,9 @@ class HfDiscreteObstaclesTerrainCfg(SubTerrainCfg):
     # For "choice" mode, obstacles can be negative (pits), so offset the
     # geom down so that the zero-level of the noise aligns with z=0.
     if self.obstacle_height_mode == "choice":
-      hfield_z_offset = elevation_min * self.vertical_scale
+      hfield_z_offset = float(elevation_min) * self.vertical_scale
     else:
-      hfield_z_offset = 0
+      hfield_z_offset = 0.0
 
     # Physical surface height per cell (pits negative, bumps positive about z=0).
     physical_heights = hfield_z_offset + normalized_elevation * max_physical_height

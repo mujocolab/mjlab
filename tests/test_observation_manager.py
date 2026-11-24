@@ -42,7 +42,7 @@ def test_all_terms_none_skipped(mock_env):
   """A group whose every term is None is skipped rather than raising."""
   cfg = {
     "actor": ObservationGroupCfg(
-      terms={"a": None, "b": None},  # type: ignore[dict-item]
+      terms={"a": None, "b": None},  # ty: ignore[invalid-argument-type]
     ),
   }
   mgr = ObservationManager(cfg, mock_env)

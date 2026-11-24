@@ -737,50 +737,29 @@ class Entity:
         device=device,
       )[None].repeat(nworld, 1)
 
-      # Joint limits.
-      joint_ids_list = [j.id for j in self._non_free_joints]
-      dof_limits = model.jnt_range[:, joint_ids_list]
-      default_joint_pos_limits = dof_limits.clone()
-      joint_pos_limits = default_joint_pos_limits.clone()
-
-      joint_pos_mean = (joint_pos_limits[..., 0] + joint_pos_limits[..., 1]) / 2
-      joint_pos_range = joint_pos_limits[..., 1] - joint_pos_limits[..., 0]
-
-      # Soft limits.
-      soft_limit_factor = (
-        self.cfg.articulation.soft_joint_pos_limit_factor
-        if self.cfg.articulation
-        else 1.0
-      )
-      soft_joint_pos_limits = torch.stack(
-        [
-          joint_pos_mean - 0.5 * joint_pos_range * soft_limit_factor,
-          joint_pos_mean + 0.5 * joint_pos_range * soft_limit_factor,
-        ],
-        dim=-1,
-      )
-
-      # Unlimited joints have jnt_range=[0,0] in MuJoCo, which makes all
-      # the computed limits [0,0]. Override to [-inf, inf] so downstream
-      # clamping becomes a no-op. (Can't do this before soft-limit math
-      # because inf - inf = NaN.)
-      unlimited = ~torch.tensor(
-        mj_model.jnt_limited[joint_ids_list], device=device, dtype=torch.bool
-      )
-      for limits in (joint_pos_limits, default_joint_pos_limits, soft_joint_pos_limits):
-        limits[:, unlimited, 0] = float("-inf")
-        limits[:, unlimited, 1] = float("inf")
     else:
       empty_shape = (nworld, 0)
       default_joint_pos = torch.empty(*empty_shape, dtype=torch.float, device=device)
       default_joint_vel = torch.empty(*empty_shape, dtype=torch.float, device=device)
-      default_joint_pos_limits = torch.empty(
-        *empty_shape, 2, dtype=torch.float, device=device
+
+    # Joint limits are read from the model on access, so they follow DR.
+    joint_ids_list = [j.id for j in self._non_free_joints]
+    joint_unlimited = ~torch.tensor(
+      mj_model.jnt_limited[joint_ids_list], device=device, dtype=torch.bool
+    )
+    soft_limit_factor = (
+      self.cfg.articulation.soft_joint_pos_limit_factor
+      if self.cfg.articulation
+      else 1.0
+    )
+    if self.is_articulated:
+      default_joint_pos_limits = torch.where(
+        joint_unlimited[:, None],
+        torch.tensor([-torch.inf, torch.inf], device=device),
+        model.jnt_range[:, joint_ids_list],
       )
-      joint_pos_limits = torch.empty(*empty_shape, 2, dtype=torch.float, device=device)
-      soft_joint_pos_limits = torch.empty(
-        *empty_shape, 2, dtype=torch.float, device=device
-      )
+    else:
+      default_joint_pos_limits = torch.empty(nworld, 0, 2, device=device)
 
     if self.is_actuated:
       joint_pos_target = torch.zeros(
@@ -796,6 +775,12 @@ class Entity:
       joint_pos_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
       joint_vel_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
       joint_effort_target = torch.empty(nworld, 0, dtype=torch.float, device=device)
+
+    # Orientation terms need a reference direction, so fall back to world -Z
+    # when gravity is zero.
+    gravity = mj_model.opt.gravity
+    gravity_norm = np.linalg.norm(gravity)
+    gravity_dir = gravity / gravity_norm if gravity_norm > 0 else (0.0, 0.0, -1.0)
 
     # Only allocate tendon targets if there are actuators using tendon transmission.
     if self.has_tendon_actuators:
@@ -841,9 +826,11 @@ class Entity:
       default_joint_pos=default_joint_pos,
       default_joint_vel=default_joint_vel,
       default_joint_pos_limits=default_joint_pos_limits,
-      joint_pos_limits=joint_pos_limits,
-      soft_joint_pos_limits=soft_joint_pos_limits,
-      gravity_vec_w=torch.tensor([0.0, 0.0, -1.0], device=device).repeat(nworld, 1),
+      joint_unlimited=joint_unlimited,
+      soft_joint_pos_limit_factor=soft_limit_factor,
+      gravity_vec_w=torch.tensor(gravity_dir, dtype=torch.float, device=device).repeat(
+        nworld, 1
+      ),
       forward_vec_b=torch.tensor([1.0, 0.0, 0.0], device=device).repeat(nworld, 1),
       is_fixed_base=self.is_fixed_base,
       is_articulated=self.is_articulated,
@@ -856,6 +843,10 @@ class Entity:
       tendon_effort_target=tendon_effort_target,
       site_effort_target=site_effort_target,
       encoder_bias=encoder_bias,
+    )
+    # Position targets zeroed by reset() and not set since.
+    self._cleared_joint_pos_target = torch.zeros_like(
+      joint_pos_target, dtype=torch.bool
     )
 
   def update(self, dt: float) -> None:
@@ -873,6 +864,7 @@ class Entity:
     and by commands that teleport the robot to a new pose mid-episode.
     """
     self._data.clear_state(env_ids)
+    self._cleared_joint_pos_target[slice(None) if env_ids is None else env_ids] = True
 
     for act in self._actuators:
       act.reset(env_ids)
@@ -894,8 +886,19 @@ class Entity:
 
     Pass ``env_ids`` after a reset to initialize only those environments' controls
     and backfill their actuator histories without advancing simulation time.
+    Cleared position targets are written as the post-reset joint positions, so
+    delayed actuators hold the reset pose instead of commanding 0.
     """
+    if env_ids is None or not self.is_actuated:
+      self._apply_actuator_controls(env_ids)
+      return
+    targets = self._data.joint_pos_target
+    stored = targets[env_ids]
+    targets[env_ids] = torch.where(
+      self._cleared_joint_pos_target[env_ids], self._data.joint_pos[env_ids], stored
+    )
     self._apply_actuator_controls(env_ids)
+    targets[env_ids] = stored
 
   def write_ctrl_to_sim(
     self,
@@ -1072,6 +1075,7 @@ class Entity:
       joint_ids = slice(None)
     env_ids, joint_ids = _outer_index(env_ids, joint_ids)
     self._data.joint_pos_target[env_ids, joint_ids] = position
+    self._cleared_joint_pos_target[env_ids, joint_ids] = False
 
   def set_joint_velocity_target(
     self,

@@ -767,16 +767,16 @@ class RayCastSensor(Sensor[RayCastData]):
     assert self._ray_geomid is not None
     assert self._ray_normal is not None
     rays(
-      m=self._model.struct,  # type: ignore[attr-defined]
-      d=self._data.struct,  # type: ignore[attr-defined]
-      pnt=self._ray_pnt,  # type: ignore[invalid-argument-type]
-      vec=self._ray_vec,  # type: ignore[invalid-argument-type]
-      geomgroup=self._geomgroup,  # pyright: ignore[reportArgumentType]
+      m=self._model.struct,  # ty: ignore[missing-attribute]
+      d=self._data.struct,  # ty: ignore[missing-attribute]
+      pnt=self._ray_pnt,  # ty: ignore[invalid-argument-type]
+      vec=self._ray_vec,  # ty: ignore[invalid-argument-type]
+      geomgroup=self._geomgroup,
       flg_static=True,
       bodyexclude=self._ray_bodyexclude,
-      dist=self._ray_dist,  # type: ignore[invalid-argument-type]
-      geomid=self._ray_geomid,  # type: ignore[invalid-argument-type]
-      normal=self._ray_normal,  # type: ignore[invalid-argument-type]
+      dist=self._ray_dist,  # ty: ignore[invalid-argument-type]
+      geomid=self._ray_geomid,  # ty: ignore[invalid-argument-type]
+      normal=self._ray_normal,  # ty: ignore[invalid-argument-type]
       rc=rc,
     )
 
@@ -818,14 +818,6 @@ class RayCastSensor(Sensor[RayCastData]):
     assert self._frame_pos_w is not None and self._frame_quat_w is not None
     self._pos_w = self._frame_pos_w[:, 0]
     self._quat_w = self._frame_quat_w[:, 0]
-
-    # ``sense()`` runs after the decimation loop (which invalidates the cache)
-    # and after rewards may have already read ``.data``, repopulating the cache
-    # with pre-sense hit positions. Rebinding the tensors above leaves that
-    # cache pointing at the previous step's data, so invalidate here to force a
-    # recompute on the next ``.data`` access. Otherwise observations and debug
-    # visualization would lag one step behind the freshly sensed hits (#998).
-    self._invalidate_cache()
 
   def _compute_alignment_rotation(self, frame_mat: torch.Tensor) -> torch.Tensor:
     """Compute rotation matrix based on ray_alignment setting."""

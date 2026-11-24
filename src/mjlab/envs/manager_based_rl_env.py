@@ -167,7 +167,7 @@ class ManagerBasedRlEnv:
   """Manager-based RL environment."""
 
   is_vector_env = True
-  metadata = {
+  metadata: dict[str, Any] = {
     "render_modes": [None, "rgb_array"],
     "mujoco_version": mujoco.__version__,
     "warp_version": wp.config.version,
@@ -209,6 +209,7 @@ class ManagerBasedRlEnv:
       model=self.sim.model,
       data=self.sim.data,
     )
+    self.sim.add_data_listener(self.scene.invalidate_sensor_caches)
 
     # Wire sensor context to simulation for sense_graph.
     if self.scene.sensor_context is not None:

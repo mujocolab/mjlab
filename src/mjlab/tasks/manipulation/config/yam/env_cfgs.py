@@ -97,13 +97,13 @@ def yam_lift_cube_vision_env_cfg(
   cfg = yam_lift_cube_env_cfg(play=play)
 
   camera_names = ["robot/camera_d405"]
-  cam_kwargs = {
+  cam_kwargs: dict[str, dict[str, Any]] = {
     "robot/camera_d405": {
       "height": 32,
       "width": 32,
     },
   }
-  shared_cam_kwargs = dict(
+  shared_cam_kwargs: dict[str, Any] = dict(
     data_types=(cam_type,),
     enabled_geom_groups=(0, 3),
     use_shadows=False,
@@ -115,7 +115,7 @@ def yam_lift_cube_vision_env_cfg(
     cam_cfg = CameraSensorCfg(
       name=cam_name.split("/")[-1],
       camera_name=cam_name,
-      **cam_kwargs[cam_name],  # type: ignore[invalid-argument-type]
+      **cam_kwargs[cam_name],
       **shared_cam_kwargs,
     )
     cfg.scene.sensors = (cfg.scene.sensors or ()) + (cam_cfg,)

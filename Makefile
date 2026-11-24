@@ -14,7 +14,6 @@ format:
 .PHONY: type
 type:
 	uv run ty check
-	uv run pyright
 
 .PHONY: stubs
 stubs:

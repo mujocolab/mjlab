@@ -8,12 +8,12 @@ import warp as wp
 
 @wp.kernel(module="unique")
 def repeat_array_kernel(
-  src: wp.array(dtype=Any),  # type: ignore
+  src: wp.array(dtype=Any),  # ty: ignore[invalid-type-form]
   nelems_per_world: int,
-  dst: wp.array(dtype=Any),  # type: ignore
+  dst: wp.array(dtype=Any),  # ty: ignore[invalid-type-form]
 ):
   tid = wp.tid()
-  src_idx = tid % nelems_per_world  # type: ignore[operator]
+  src_idx = tid % nelems_per_world  # ty: ignore[unsupported-operator]
   dst[tid] = src[src_idx]
 
 
@@ -35,7 +35,7 @@ def expand_model_fields(
     dst = wp_array(shape=new_shape, dtype=x.dtype, device=x.device)
 
     src_flat = x.flatten()
-    dst_flat = dst.flatten()  # type: ignore[possibly-missing-attribute]
+    dst_flat = dst.flatten()  # ty: ignore[missing-union-attribute]
 
     # Launch kernel to repeat data, one thread per destination element.
     n_elems_per_world = dst_flat.shape[0] // nworld

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import torch
 
 from mjlab.entity import Entity
-from mjlab.managers.event_manager import RecomputeLevel, requires_model_fields
+from mjlab.managers.event_manager import requires_model_fields
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.utils.lab_api.math import sample_uniform
 
@@ -53,7 +53,7 @@ def joint_damping(
 dof_damping = joint_damping
 
 
-@requires_model_fields("dof_armature", recompute=RecomputeLevel.set_const_0)
+@requires_model_fields("dof_armature")
 def joint_armature(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -64,7 +64,7 @@ def joint_armature(
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
-  """Randomize joint armature. Triggers ``set_const_0``."""
+  """Randomize joint armature."""
   _randomize_model_field(
     env,
     env_ids,
@@ -175,7 +175,7 @@ def joint_limits(
 jnt_range = joint_limits
 
 
-@requires_model_fields("qpos0", recompute=RecomputeLevel.set_const_0)
+@requires_model_fields("qpos0")
 def joint_default_pos(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -186,7 +186,7 @@ def joint_default_pos(
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
-  """Randomize default joint positions (qpos0). Triggers ``set_const_0``."""
+  """Randomize default joint positions (qpos0)."""
   _randomize_model_field(
     env,
     env_ids,

@@ -8,7 +8,7 @@ from contextlib import redirect_stderr, redirect_stdout
 try:
   import pytest
 except ModuleNotFoundError:
-  pytest = None  # type: ignore[assignment]
+  pytest = None
 
 
 @pytest.mark.slow if pytest else lambda f: f

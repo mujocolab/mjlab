@@ -57,13 +57,13 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
     os.makedirs(path, exist_ok=True)
     torch.onnx.export(
       onnx_model,
-      onnx_model.get_dummy_inputs(),  # type: ignore[operator]
+      onnx_model.get_dummy_inputs(),  # ty: ignore[call-non-callable]
       os.path.join(path, filename),
       export_params=True,
       opset_version=18,
       verbose=verbose,
-      input_names=onnx_model.input_names,  # type: ignore[arg-type]
-      output_names=onnx_model.output_names,  # type: ignore[arg-type]
+      input_names=onnx_model.input_names,  # ty: ignore[invalid-argument-type]
+      output_names=onnx_model.output_names,  # ty: ignore[invalid-argument-type]
       dynamic_axes={},
       dynamo=False,
     )

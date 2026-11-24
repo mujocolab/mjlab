@@ -10,8 +10,10 @@ that maps to real robot hardware. Beyond wrapping, they are a general
 abstraction for transforming simulation data into structured outputs:
 ``ContactSensor`` aggregates contact pairs with reduction and air time
 tracking, ``RayCastSensor`` performs GPU-accelerated terrain scanning,
-``CameraSensor`` renders RGB and depth images on the GPU, and the base
-``Sensor`` class can be subclassed for custom measurement logic.
+``CameraSensor`` renders RGB and depth images on the GPU,
+``TactileSensor`` reports contact depth and slip over a grid of taxels,
+and the base ``Sensor`` class can be subclassed for custom measurement
+logic.
 
 Sensors are configured at the **scene level**, not on individual entities. A
 sensor can reference an entity element (a contact sensor on the robot's
@@ -51,10 +53,11 @@ independent of any entity entirely. This is why sensors live in
     feet.found                                    # [B, P] contact count per foot
     feet.force                                    # [B, P, 3] contact force per foot
 
-mjlab provides four sensor types: ``BuiltinSensor`` for native MuJoCo
+mjlab provides five sensor types: ``BuiltinSensor`` for native MuJoCo
 measurements, ``ContactSensor`` for structured contact detection,
-``RayCastSensor`` for GPU-accelerated raycasting, and ``CameraSensor``
-for RGB-D rendering. The base ``Sensor`` class can be subclassed for
+``RayCastSensor`` for GPU-accelerated raycasting, ``CameraSensor``
+for RGB-D rendering, and ``TactileSensor`` for touch sensing over a
+grid of taxels. The base ``Sensor`` class can be subclassed for
 custom measurement logic; see `Extending: custom sensors`_ below.
 
 
@@ -416,6 +419,14 @@ RGB-D Camera
 :ref:`rgbd_camera` for full documentation.
 
 
+Tactile Sensor
+--------------
+
+``TactileSensor`` places a grid of taxels on the surface of a collision
+geom and reports contact depth and slip at each taxel as images. See
+:ref:`tactile_sensor` for full documentation.
+
+
 Extending: custom sensors
 -------------------------
 
@@ -424,12 +435,14 @@ All sensors inherit from ``Sensor[T]``, a generic base class where
 ``torch.Tensor`` for ``BuiltinSensor``, ``ContactData`` for
 ``ContactSensor``).
 
-The base class provides automatic per-step caching. The ``data``
-property calls ``_compute_data()`` on first access each step and
-caches the result. The cache is invalidated automatically when
-``update()`` or ``reset()`` is called, so multiple reads within the
-same step (from different observation or reward terms) pay the
-computation cost only once.
+The base class caches the output of ``_compute_data()``. The cache is
+invalidated whenever the data it depends on changes: by ``update()``
+and ``reset()``, after every ``sim.step()``, ``sim.forward()`` and
+``sim.reset()``, and after ``sim.sense()`` refreshes ray and render
+buffers. Reads between those points (from different observation or
+reward terms) pay the computation cost only once. Because a step can
+recompute the data more than once, ``_compute_data()`` must not have
+side effects; keep per-step state in ``update()``.
 
 **Lifecycle methods:**
 
@@ -453,3 +466,4 @@ reference implementations for custom sensor development.
 
    raycast_sensor
    rgbd_camera
+   tactile_sensor

@@ -1,11 +1,15 @@
 """Tests specific to motion tracking tasks."""
 
+from unittest.mock import Mock
+
 import pytest
+import torch
 
 from mjlab.asset_zoo.robots import G1_ACTION_SCALE
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
-from mjlab.tasks.tracking.mdp import MotionCommandCfg
+from mjlab.tasks.tracking.mdp import MotionCommand, MotionCommandCfg
+from mjlab.utils.lab_api.math import quat_apply, quat_from_euler_xyz, quat_mul
 
 
 @pytest.fixture(scope="module")
@@ -31,6 +35,18 @@ def test_tracking_tasks_have_motion_command(tracking_task_ids: list[str]) -> Non
     assert isinstance(motion_cmd, MotionCommandCfg), (
       f"Task {task_id} motion command is not MotionCommandCfg"
     )
+
+
+def test_to_robot_heading_rotates_by_the_yaw_offset_only() -> None:
+  yaw, tilt = torch.tensor([-3.0, -1.0, 0.4, 2.0]), torch.full((4,), 0.3)
+  cmd = Mock(anchor_quat_w=quat_from_euler_xyz(*torch.randn(3, 4)))
+  offset = quat_from_euler_xyz(tilt, tilt, yaw)
+  cmd.robot_anchor_quat_w = quat_mul(offset, cmd.anchor_quat_w)
+  cmd.yaw_offset_quat_w = MotionCommand.yaw_offset_quat_w.__get__(cmd)
+  vec = torch.randn(4, 3, 3)
+  heading = quat_from_euler_xyz(0 * yaw, 0 * yaw, yaw)[:, None].expand(-1, 3, -1)
+  expected = quat_apply(heading, vec)
+  torch.testing.assert_close(MotionCommand.to_robot_heading(cmd, vec), expected)
 
 
 def test_tracking_tasks_have_self_collision_sensor(

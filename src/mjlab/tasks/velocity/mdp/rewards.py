@@ -67,10 +67,10 @@ def track_angular_velocity(
 class upright:
   """Reward for keeping the base upright.
 
-  Without ``terrain_sensor_names``, penalizes tilt relative to world up (correct for
-  flat ground).
+  Uses the root body unless ``asset_cfg`` selects a single body.
 
-  With ``terrain_sensor_names``, penalizes tilt relative to the terrain surface normal.
+  Measures tilt against configured gravity, or the terrain surface normal when
+  ``terrain_sensor_names`` is set.
   """
 
   def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRlEnv):
@@ -89,12 +89,7 @@ class upright:
     terrain_sensor_names: tuple[str, ...] | None = None,
   ) -> torch.Tensor:
     asset: Entity = env.scene[asset_cfg.name]
-
-    if asset_cfg.body_ids:
-      body_quat_w = asset.data.body_link_quat_w[:, asset_cfg.body_ids, :]  # [B, N, 4]
-      body_quat_w = body_quat_w.squeeze(1)  # [B, 4]
-    else:
-      body_quat_w = asset.data.root_link_quat_w  # [B, 4]
+    body_quat_w = self._get_body_quat_w(asset, asset_cfg)
 
     if terrain_sensor_names is not None:
       terrain_normal = terrain_normal_from_sensors(env, terrain_sensor_names)  # [B, 3]
@@ -103,7 +98,7 @@ class upright:
       target_b = quat_apply_inverse(body_quat_w, terrain_normal)  # [B, 3]
       xy_squared = torch.sum(torch.square(target_b[:, :2]), dim=1)
     else:
-      gravity_w = asset.data.gravity_vec_w  # [3]
+      gravity_w = asset.data.gravity_vec_w  # [B, 3]
       projected_gravity_b = quat_apply_inverse(body_quat_w, gravity_w)
       xy_squared = torch.sum(torch.square(projected_gravity_b[:, :2]), dim=1)
 
@@ -124,12 +119,7 @@ class upright:
       return
 
     terrain_normal = terrain_normal_from_sensors(env, self._terrain_sensor_names)
-    if self._asset_cfg.body_ids:
-      body_quat_w = asset.data.body_link_quat_w[:, self._asset_cfg.body_ids, :].squeeze(
-        1
-      )
-    else:
-      body_quat_w = asset.data.root_link_quat_w
+    body_quat_w = self._get_body_quat_w(asset, self._asset_cfg)
     up_local = torch.tensor([0.0, 0.0, 1.0], device=env.device).expand_as(
       body_quat_w[:, :3]
     )
@@ -157,6 +147,14 @@ class upright:
         color=(1.0, 0.5, 0.0, 0.8),
         width=0.01,
       )
+
+  @staticmethod
+  def _get_body_quat_w(asset: Entity, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    # An unset selection is slice(None), which would index every body.
+    ids = asset_cfg.body_ids
+    if ids == [] or (asset_cfg.body_names is None and ids == slice(None)):
+      return asset.data.root_link_quat_w
+    return asset.data.body_link_quat_w[:, ids, :].squeeze(1)
 
 
 def self_collision_cost(
@@ -296,6 +294,7 @@ class feet_swing_height:
     assert command is not None
     height_sensor: TerrainHeightSensor = env.scene[height_sensor_name]
     foot_heights = height_sensor.data.heights
+    assert contact_sensor.data.found is not None
     in_air = contact_sensor.data.found == 0
     self.peak_heights = torch.where(
       in_air,

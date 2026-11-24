@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from mjlab.managers.event_manager import RecomputeLevel, requires_model_fields
+from mjlab.managers.event_manager import requires_model_fields
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.utils.lab_api.math import (
   matrix_from_quat,
@@ -280,7 +280,7 @@ def _build_perturbation_U(
 # Per-field functions.
 
 
-@requires_model_fields("body_mass", recompute=RecomputeLevel.set_const)
+@requires_model_fields("body_mass")
 def body_mass(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -291,7 +291,7 @@ def body_mass(
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
-  """Randomize body mass. Triggers ``set_const`` recomputation.
+  """Randomize body mass.
 
   .. warning::
 
@@ -325,7 +325,7 @@ def body_mass(
   )
 
 
-@requires_model_fields("body_ipos", recompute=RecomputeLevel.set_const)
+@requires_model_fields("body_ipos")
 def body_com_offset(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -336,7 +336,7 @@ def body_com_offset(
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
-  """Randomize body COM offset (body_ipos). Triggers ``set_const``."""
+  """Randomize body COM offset (body_ipos)."""
   _randomize_model_field(
     env,
     env_ids,
@@ -356,7 +356,7 @@ def body_com_offset(
 body_ipos = body_com_offset
 
 
-@requires_model_fields("body_pos", recompute=RecomputeLevel.set_const_0)
+@requires_model_fields("body_pos")
 def body_pos(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -367,7 +367,7 @@ def body_pos(
   axes: list[int] | None = None,
   shared_random: bool = False,
 ) -> None:
-  """Randomize body position. Triggers ``set_const_0``."""
+  """Randomize body position."""
   _randomize_model_field(
     env,
     env_ids,
@@ -383,7 +383,7 @@ def body_pos(
   )
 
 
-@requires_model_fields("body_quat", recompute=RecomputeLevel.set_const_0)
+@requires_model_fields("body_quat")
 def body_quat(
   env: ManagerBasedRlEnv,
   env_ids: torch.Tensor | None,
@@ -397,7 +397,7 @@ def body_quat(
 
   Ranges are in radians. The sampled perturbation is composed with the default
   quaternion (not the current one), so repeated calls do not accumulate. The result is
-  always a valid unit quaternion. Triggers ``set_const_0`` recomputation.
+  always a valid unit quaternion.
   """
   _randomize_quat_field(
     env,
@@ -417,7 +417,6 @@ def body_quat(
   "body_ipos",
   "body_inertia",
   "body_iquat",
-  recompute=RecomputeLevel.set_const,
 )
 def pseudo_inertia(
   env: ManagerBasedRlEnv,
@@ -441,7 +440,6 @@ def pseudo_inertia(
 
   Jointly randomizes ``body_mass``, ``body_ipos``, ``body_inertia``, and ``body_iquat``
   while guaranteeing exact physical consistency for any perturbation magnitude.
-  Triggers ``set_const`` recomputation.
 
   The parameterization follows `Rucker & Wensing, 2022
   <https://par.nsf.gov/servlets/purl/10347458>`_: the pseudo-inertia matrix

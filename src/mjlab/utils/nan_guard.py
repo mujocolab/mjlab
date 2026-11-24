@@ -1,11 +1,11 @@
 """Lightweight NaN guard for capturing simulation states when NaN/Inf detected."""
 
 from collections import deque
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator
 
 import mujoco
 import mujoco_warp as mjwarp
@@ -75,7 +75,7 @@ class NanGuard:
     self.step_counter += 1
 
   @contextmanager
-  def watch(self, wp_data: mjwarp.Data) -> Iterator[None]:
+  def watch(self, wp_data: mjwarp.Data) -> Generator[None]:
     """Context manager that captures state before and checks for NaN/Inf after.
 
     Usage:
@@ -182,7 +182,7 @@ class NanGuard:
       dtype=object,
     )
 
-    np.savez_compressed(filename, **data)
+    np.savez_compressed(filename, **data)  # ty: ignore[invalid-argument-type]
     mujoco.mj_saveModel(self.mj_model, str(model_filename), None)
 
     # Create symlinks to latest dumps

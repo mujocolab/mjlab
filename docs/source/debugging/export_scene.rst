@@ -44,7 +44,12 @@ Options
 -------
 
 ``--output-dir DIR`` *(default: "export")*
-    Destination directory. Cleaned before each export to prevent stale assets.
+    Destination directory. The export stops with an error if it already exists and
+    is not empty, so existing files are never deleted by accident.
+
+``--overwrite True`` *(default: False)*
+    Delete a non-empty output directory before exporting, to replace a previous
+    export without leaving stale assets behind.
 
 ``--zip True`` *(default: False)*
     Compress the output into a ``.zip`` archive and remove the directory.
