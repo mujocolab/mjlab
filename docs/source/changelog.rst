@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``Entity.find_tendons_by_actuator_names()`` and
+  ``Entity.find_sites_by_actuator_names()``, and a ``preserve_order`` argument to
+  ``Entity.find_joints_by_actuator_names()``.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
@@ -69,6 +72,8 @@ Changed
 Fixed
 ^^^^^
 
+- Joint actions now respect ``BaseActionCfg.preserve_order``.
+- Actions now only select targets driven by an actuator of their transmission type.
 - ``project_points()`` now keeps the leading dimension for a batch of one and
   returns unbatched projections without an extra dimension.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
