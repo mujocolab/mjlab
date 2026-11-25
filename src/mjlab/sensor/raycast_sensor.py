@@ -129,6 +129,11 @@ class PinholeCameraPatternCfg:
   _camera_name: str | None = field(default=None, repr=False)
   """Internal: MuJoCo camera name for deferred parameter resolution."""
 
+  _intrinsics: tuple[float, float, float, float] | None = field(
+    default=None, repr=False
+  )
+  """Internal: calibrated focal lengths and principal point (fx, fy, cx, cy)."""
+
   @classmethod
   def from_mujoco_camera(cls, camera_name: str) -> PinholeCameraPatternCfg:
     """Create config that references a MuJoCo camera.
@@ -151,16 +156,19 @@ class PinholeCameraPatternCfg:
     """Create from 3x3 intrinsic matrix [fx, 0, cx, 0, fy, cy, 0, 0, 1].
 
     Args:
-      intrinsic_matrix: Flattened 3x3 intrinsic matrix.
+      intrinsic_matrix: Flattened 3x3 intrinsic matrix with focal lengths and
+        principal point in pixels, using image coordinates measured from the
+        top-left image edge.
       width: Image width in pixels.
       height: Image height in pixels.
 
     Returns:
-      Config with fovy computed from the intrinsic matrix.
+      Config with calibrated ray directions and fovy computed from fy.
     """
-    fy = intrinsic_matrix[4]  # fy is at position [1,1] in the matrix
+    fx, fy = intrinsic_matrix[0], intrinsic_matrix[4]
+    cx, cy = intrinsic_matrix[2], intrinsic_matrix[5]
     fovy = 2 * math.atan(height / (2 * fy)) * 180 / math.pi
-    return cls(width=width, height=height, fovy=fovy)
+    return cls(width=width, height=height, fovy=fovy, _intrinsics=(fx, fy, cx, cy))
 
   def generate_rays(
     self, mj_model: mujoco.MjModel | None, device: str
@@ -205,16 +213,21 @@ class PinholeCameraPatternCfg:
       aspect = width / height
       h_fov_rad = 2 * math.atan(math.tan(v_fov_rad / 2) * aspect)
 
-    # Normalized pixel centers, row-major with row 0 at the top (MuJoCo's layout).
-    cols = torch.arange(width, device=device, dtype=torch.float32)
-    rows = torch.arange(height, device=device, dtype=torch.float32)
-    u = (cols + 0.5) / width * 2 - 1
-    v = 1 - (rows + 0.5) / height * 2
-    grid_u, grid_v = torch.meshgrid(u, v, indexing="xy")
+    # Pixel centers, row-major with row 0 at the top (MuJoCo's layout).
+    cols = torch.arange(width, device=device, dtype=torch.float32) + 0.5
+    rows = torch.arange(height, device=device, dtype=torch.float32) + 0.5
+    if self._intrinsics is not None:
+      fx, fy, cx, cy = self._intrinsics
+      x = (cols - cx) / fx
+      y = (cy - rows) / fy
+    else:
+      x = (cols / width * 2 - 1) * math.tan(h_fov_rad / 2)
+      y = (1 - rows / height * 2) * math.tan(v_fov_rad / 2)
+    grid_x, grid_y = torch.meshgrid(x, y, indexing="xy")
 
     # Convert to ray directions (MuJoCo camera: -Z forward, +X right, +Y up).
-    ray_x = grid_u.flatten() * math.tan(h_fov_rad / 2)
-    ray_y = grid_v.flatten() * math.tan(v_fov_rad / 2)
+    ray_x = grid_x.flatten()
+    ray_y = grid_y.flatten()
     ray_z = -torch.ones_like(ray_x)  # Negative Z for MuJoCo camera forward
 
     num_rays = width * height
