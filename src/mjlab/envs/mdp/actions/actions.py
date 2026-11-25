@@ -107,13 +107,15 @@ class BaseAction(ActionTerm):
       Tuple of (target_ids, target_names).
     """
     if cfg.transmission_type == TransmissionType.JOINT:
-      return self._entity.find_joints_by_actuator_names(cfg.actuator_names)
+      return self._entity.find_joints_by_actuator_names(
+        cfg.actuator_names, preserve_order=cfg.preserve_order
+      )
     elif cfg.transmission_type == TransmissionType.TENDON:
-      return self._entity.find_tendons(
+      return self._entity.find_tendons_by_actuator_names(
         cfg.actuator_names, preserve_order=cfg.preserve_order
       )
     elif cfg.transmission_type == TransmissionType.SITE:
-      return self._entity.find_sites(
+      return self._entity.find_sites_by_actuator_names(
         cfg.actuator_names, preserve_order=cfg.preserve_order
       )
     else:

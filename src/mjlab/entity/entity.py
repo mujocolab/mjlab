@@ -552,29 +552,37 @@ class Entity:
       joint_subset = self.joint_names
     return resolve_matching_names(name_keys, joint_subset, preserve_order)
 
+  def _find_transmission_by_actuator_name(
+    self,
+    name_keys: str | Sequence[str],
+    transmission_type: TransmissionType,
+    target_names: Sequence[str],
+    preserve_order: bool,
+  ) -> tuple[list[int], list[str]]:
+    """Match names among the targets driven through the given transmission."""
+    # Collect actuated entities
+    actuated_names: set[str] = set()
+    for act in self._actuators:
+      if act.transmission_type == transmission_type:
+        actuated_names.update(act.target_names)
+    name_to_entity_idx = [
+      i for i, name in enumerate(target_names) if name in actuated_names
+    ]
+
+    matched, matched_names = resolve_matching_names(
+      name_keys, [target_names[i] for i in name_to_entity_idx], preserve_order
+    )
+    return [name_to_entity_idx[i] for i in matched], matched_names
+
   def find_joints_by_actuator_names(
     self,
     actuator_name_keys: str | Sequence[str],
+    preserve_order: bool = False,
   ) -> tuple[list[int], list[str]]:
-    # Collect all actuated joint names.
-    actuated_joint_names_set = set()
-    for act in self._actuators:
-      actuated_joint_names_set.update(act.target_names)
-
-    # Filter self.joint_names to only actuated joints, preserving natural order.
-    actuated_in_natural_order = [
-      name for name in self.joint_names if name in actuated_joint_names_set
-    ]
-
-    # Find joints matching the pattern within actuated joints.
-    _, matched_joint_names = self.find_joints(
-      actuator_name_keys, joint_subset=actuated_in_natural_order, preserve_order=False
+    """Find joints driven by joint transmission actuators."""
+    return self._find_transmission_by_actuator_name(
+      actuator_name_keys, TransmissionType.JOINT, self.joint_names, preserve_order
     )
-
-    # Map joint names back to entity-local indices (indices into self.joint_names).
-    name_to_entity_idx = {name: i for i, name in enumerate(self.joint_names)}
-    joint_ids = [name_to_entity_idx[name] for name in matched_joint_names]
-    return joint_ids, matched_joint_names
 
   def find_geoms(
     self,
@@ -596,6 +604,16 @@ class Entity:
       site_subset = self.site_names
     return resolve_matching_names(name_keys, site_subset, preserve_order)
 
+  def find_sites_by_actuator_names(
+    self,
+    actuator_name_keys: str | Sequence[str],
+    preserve_order: bool = False,
+  ) -> tuple[list[int], list[str]]:
+    """Find sites driven by site transmission actuators."""
+    return self._find_transmission_by_actuator_name(
+      actuator_name_keys, TransmissionType.SITE, self.site_names, preserve_order
+    )
+
   def find_tendons(
     self,
     name_keys: str | Sequence[str],
@@ -605,6 +623,16 @@ class Entity:
     if tendon_subset is None:
       tendon_subset = self.tendon_names
     return resolve_matching_names(name_keys, tendon_subset, preserve_order)
+
+  def find_tendons_by_actuator_names(
+    self,
+    actuator_name_keys: str | Sequence[str],
+    preserve_order: bool = False,
+  ) -> tuple[list[int], list[str]]:
+    """Find tendons driven by tendon transmission actuators."""
+    return self._find_transmission_by_actuator_name(
+      actuator_name_keys, TransmissionType.TENDON, self.tendon_names, preserve_order
+    )
 
   def find_cameras(
     self,
