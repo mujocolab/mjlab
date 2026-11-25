@@ -14,7 +14,7 @@ from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlBaseRunnerCfg, RslRlVecEnvWrapper
 from mjlab.scripts._cli import maybe_print_top_level_help
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
-from mjlab.tasks.tracking.mdp import MotionCommandCfg
+from mjlab.tasks.tracking.mdp import MotionCommandCfg, resolve_motion_file
 from mjlab.utils.gpu import select_gpus
 from mjlab.utils.os import dump_yaml, get_checkpoint_path, get_wandb_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
@@ -80,7 +80,9 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     assert isinstance(motion_cmd, MotionCommandCfg)
 
     # Check if motion_file is already set (e.g., via CLI --env.commands.motion.motion-file).
-    if motion_cmd.motion_file and Path(motion_cmd.motion_file).exists():
+    if motion_cmd.motion_file and all(
+      Path(path).exists() for path in resolve_motion_file(motion_cmd.motion_file)
+    ):
       print(f"[INFO] Using local motion file: {motion_cmd.motion_file}")
     elif cfg.registry_name:
       # Download from WandB registry.

@@ -30,10 +30,34 @@ Added
   The velocity, manipulation and tracking runners now share this export path.
 - The Unitree G1 model limits ankle roll and pitch jointly, with fixed tendons that
   model the coupled mechanical stops of the push-rod ankle.
+- ``MotionCommandCfg.motion_file`` accepts a list of NPZ files, a glob or a directory
+  packed by the new ``mjlab.scripts.pack_motions``. ``MotionLoader.motion_ends``,
+  ``motion_names`` and ``fps`` describe the concatenated clips. With several clips,
+  ``sampling_mode="start"`` resets to the first frame of a random clip, and the
+  exported ONNX file holds the policy without the motion.
+- Added ``mjlab.utils.forward_kinematics.ForwardKinematics``, batched torch forward
+  kinematics for floating-base robots with hinge joints.
 
 Changed
 ^^^^^^^
 
+- **Breaking:** tracking motion files store the root link's world pose and twist,
+  the joint states, ``joint_names`` and ``fps``, and ``MotionCommand`` computes the
+  tracked bodies from them with forward kinematics. Existing NPZ files do not load;
+  regenerate them with ``csv_to_npz``, which builds a scene only for ``--render``
+  and raises on a wrong CSV column count. Loading raises unless ``joint_names``
+  equal the robot's joint names, every clip has at least two frames and all clips
+  share one ``fps``.
+- **Breaking:** ``MotionLoader`` takes a ``ForwardKinematics`` and exposes
+  ``body_state(frames)`` in place of the ``body_*_w`` tensors. ``MotionCommand``
+  keeps the tracked bodies as state that ``MotionCommand.set_time_steps`` updates;
+  writing ``time_steps`` directly does not.
+- Tracking episodes end as a time-out on their clip's last frame, through the new
+  ``motion_end`` termination. Previously the command wrapped to a resampled frame,
+  so ``play`` now restarts a finished clip through an environment reset and the
+  tracking ``evaluate`` script counts reaching the last frame of a clip shorter
+  than the episode as a success. A reset frame is at most the frame before its
+  clip's last frame.
 - Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on ``mujoco-core``
   instead of ``mujoco``. To upgrade an existing environment, run
   ``uv sync --reinstall-package mujoco-core``: removing ``mujoco`` deletes files that

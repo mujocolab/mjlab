@@ -103,8 +103,11 @@ def _make_motion_command_stub(time_steps, total, sampling_mode="uniform"):
   """A stub with just enough state to drive MotionCommand._update_command."""
   cmd = Mock()
   cmd.time_steps = torch.tensor(time_steps, dtype=torch.long)
+  cmd.num_envs = len(time_steps)
+  cmd.device = "cpu"
   cmd.motion = Mock()
   cmd.motion.time_step_total = total
+  cmd.motion.motion_ends = torch.tensor([total])
   cmd.cfg = Mock()
   cmd.cfg.sampling_mode = sampling_mode
   cmd.cfg.adaptive_alpha = 0.5

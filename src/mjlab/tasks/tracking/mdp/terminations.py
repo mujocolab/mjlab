@@ -84,3 +84,9 @@ def bad_motion_body_pos_z_only(
     - command.robot_body_pos_w[:, body_indexes, -1]
   )
   return torch.any(error > threshold, dim=-1)
+
+
+def motion_end(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
+  """True for envs whose reference frame is the last frame of its clip."""
+  command = cast(MotionCommand, env.command_manager.get_term(command_name))
+  return torch.isin(command.time_steps + 1, command.motion.motion_ends)

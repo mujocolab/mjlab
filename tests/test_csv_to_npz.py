@@ -32,6 +32,7 @@ def test_motion_loader_keeps_last_frame(
 
   loader = MotionLoader(
     motion_file=str(csv_path),
+    joint_names=["joint"],
     input_fps=input_fps,
     output_fps=output_fps,
     device="cpu",
@@ -40,3 +41,10 @@ def test_motion_loader_keeps_last_frame(
   assert loader.output_frames == expected_frames
   last_input_frame = (expected_frames - 1) * input_fps / output_fps
   assert loader.motion_dof_poss[-1].item() == pytest.approx(last_input_frame, abs=1e-4)
+
+
+def test_motion_loader_rejects_wrong_column_count(tmp_path: Path) -> None:
+  csv_path = tmp_path / "motion.csv"
+  np.savetxt(csv_path, np.zeros((4, 9)), delimiter=",")
+  with pytest.raises(ValueError, match="9 columns"):
+    MotionLoader(str(csv_path), ["joint"], input_fps=30, output_fps=50, device="cpu")
