@@ -106,9 +106,18 @@ def test_taxels_lie_on_the_collision_surface(device):
   torch.testing.assert_close(on_cube[:, 2], torch.full((16,), 0.01, device=device))
 
 
-def test_grid_missing_the_geom_raises(device):
+# The cube mesh's side faces are parallel to the rays of an axis-aligned pad.
+@pytest.mark.parametrize(
+  "xml, geom, pos",
+  [(PAD_XML, "pad", (0.0, 0.0, 0.0)), (SHAPES_XML, "cube", (0.1, 0.0, 0.0))],
+  ids=["box", "mesh"],
+)
+def test_grid_missing_the_geom_raises(device, xml, geom, pos):
   cfg = TactileSensorCfg(
-    name="tactile", geom=ObjRef("geom", "pad", entity="pad"), size=(0.05, 0.05)
+    name="tactile",
+    geom=ObjRef("geom", geom, entity="obj"),
+    pos=pos,
+    size=(0.05, 0.05),
   )
   with pytest.raises(ValueError, match="miss geom"):
-    make_scene_and_sim(device, {"pad": PAD_XML}, sensors=(cfg,))
+    make_scene_and_sim(device, {"obj": xml}, sensors=(cfg,))
