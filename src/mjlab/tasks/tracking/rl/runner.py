@@ -90,8 +90,7 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
         "body_lin_vel_w",
         "body_ang_vel_w",
       ],
-      dynamic_axes={},
-      dynamo=False,
+      external_data=False,
     )
 
   def get_export_metadata(self, run_name: str) -> dict[str, list | str | float]:

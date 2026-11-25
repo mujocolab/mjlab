@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Literal
 import mujoco
 import mujoco_warp as mjwarp
 import torch
+from torch.export.passes import move_to_device_pass
 
 from mjlab.actuator.actuator import ActuatorCmd
 from mjlab.actuator.dc_actuator import DcMotorActuator, DcMotorActuatorCfg
@@ -27,12 +28,13 @@ class LearnedMlpActuatorCfg(DcMotorActuatorCfg):
   friction effects.
 
   The network is trained offline using data from the real system and loaded
-  as a TorchScript file. The model uses a sliding window of historical joint
-  position errors and velocities as inputs.
+  from a ``torch.export`` archive (``.pt2``) saved via ``torch.export.save()``.
+  The model uses a sliding window of historical joint position errors and
+  velocities as inputs.
   """
 
   network_file: str
-  """Path to the TorchScript file containing the trained MLP model."""
+  """Path to the ``torch.export`` (``.pt2``) file containing the trained MLP model."""
 
   pos_scale: float
   """Scaling factor for joint position error inputs to the network."""
@@ -87,7 +89,7 @@ class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):
     target_names: list[str],
   ) -> None:
     super().__init__(cfg, entity, target_ids, target_names)
-    self.network: torch.jit.ScriptModule | None = None
+    self.network: torch.nn.Module | None = None
     self._pos_error_history: CircularBuffer | None = None
     self._vel_history: CircularBuffer | None = None
 
@@ -100,10 +102,10 @@ class LearnedMlpActuator(DcMotorActuator[LearnedMlpActuatorCfg]):
   ) -> None:
     super().initialize(mj_model, model, data, device)
 
-    # Load the trained network from TorchScript file.
-    self.network = torch.jit.load(self.cfg.network_file, map_location=device)
-    assert self.network is not None
-    self.network.eval()
+    # Load the trained network from the torch.export (.pt2) file.
+    exported_program = torch.export.load(self.cfg.network_file)
+    exported_program = move_to_device_pass(exported_program, device)
+    self.network = exported_program.module()
 
     # Create history buffers.
     num_envs = data.nworld

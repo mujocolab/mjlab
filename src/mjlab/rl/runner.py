@@ -45,11 +45,11 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
   def export_policy_to_onnx(
     self, path: str, filename: str = "policy.onnx", verbose: bool = False
   ) -> None:
-    """Export policy to ONNX format using legacy export path.
+    """Export policy to a self-contained ONNX file.
 
-    Overrides the base implementation to set dynamo=False, avoiding warnings about
-    dynamic_axes being deprecated with the new TorchDynamo export path
-    (torch>=2.9 default).
+    Overrides the base implementation to pass ``external_data=False`` so weights
+    are embedded in the ``.onnx`` file rather than written to a separate
+    ``.onnx.data`` sidecar.
     """
     onnx_model = self.alg.get_policy().as_onnx()
     onnx_model.to("cpu")
@@ -64,8 +64,7 @@ class MjlabOnPolicyRunner(OnPolicyRunner):
       verbose=verbose,
       input_names=onnx_model.input_names,  # ty: ignore[invalid-argument-type]
       output_names=onnx_model.output_names,  # ty: ignore[invalid-argument-type]
-      dynamic_axes={},
-      dynamo=False,
+      external_data=False,
     )
 
   @staticmethod

@@ -152,9 +152,8 @@ def test_runner_handles_old_checkpoints_without_env_state(env, device):
     assert wrapped_env.unwrapped.common_step_counter == 999
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_export_policy_to_onnx(env, device):
-  """runner.export_policy_to_onnx() produces a valid ONNX file."""
+  """runner.export_policy_to_onnx() produces a valid self-contained ONNX file."""
   wrapped_env = RslRlVecEnvWrapper(env)
   agent_cfg = RslRlOnPolicyRunnerCfg(
     num_steps_per_env=4, max_iterations=10, save_interval=5
@@ -167,6 +166,7 @@ def test_export_policy_to_onnx(env, device):
     runner.export_policy_to_onnx(tmpdir, "test_policy.onnx")
     onnx_path = Path(tmpdir) / "test_policy.onnx"
     assert onnx_path.exists()
+    assert not (Path(tmpdir) / "test_policy.onnx.data").exists()
     onnx.checker.check_model(str(onnx_path))
 
 
@@ -250,7 +250,6 @@ def test_onnx_export_without_normalization():
   assert out.shape == (4, 4)
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_onnx_runtime_roundtrip_matches_pytorch():
   """Exported .onnx file produces the same outputs as PyTorch via onnxruntime."""
   ort = pytest.importorskip("onnxruntime")
@@ -271,7 +270,7 @@ def test_onnx_runtime_roundtrip_matches_pytorch():
       input_names=onnx_model.input_names,
       output_names=onnx_model.output_names,
       opset_version=18,
-      dynamo=False,
+      external_data=False,
     )
     sess = ort.InferenceSession(str(path))
     [actual] = sess.run(None, {"obs": x.numpy()})
@@ -348,9 +347,8 @@ def test_cnn_onnx_export_matches_actor():
   torch.testing.assert_close(actual, expected, atol=1e-6, rtol=0)
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_cnn_onnx_export_to_file():
-  """SpatialSoftmaxCNNModel exports to a valid ONNX file."""
+  """SpatialSoftmaxCNNModel exports to a valid self-contained ONNX file."""
   actor = _make_cnn_actor(obs_normalization=False)
   onnx_model = actor.as_onnx()
   onnx_model.to("cpu")
@@ -366,14 +364,13 @@ def test_cnn_onnx_export_to_file():
       opset_version=18,
       input_names=onnx_model.input_names,
       output_names=onnx_model.output_names,
-      dynamic_axes={},
-      dynamo=False,
+      external_data=False,
     )
     assert onnx_path.exists()
+    assert not (Path(tmpdir) / "cnn_policy.onnx.data").exists()
     onnx.checker.check_model(str(onnx_path))
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_cnn_onnx_runtime_roundtrip_matches_pytorch():
   """Exported CNN .onnx file produces the same outputs as PyTorch via onnxruntime."""
   ort = pytest.importorskip("onnxruntime")
@@ -396,7 +393,7 @@ def test_cnn_onnx_runtime_roundtrip_matches_pytorch():
       input_names=onnx_model.input_names,
       output_names=onnx_model.output_names,
       opset_version=18,
-      dynamo=False,
+      external_data=False,
     )
     sess = ort.InferenceSession(str(path))
     [actual] = sess.run(None, {"obs": x_1d.numpy(), "camera": x_2d.numpy()})
@@ -551,6 +548,51 @@ def test_onnx_motion_model_clamps_out_of_bounds_time_step():
     _, joint_pos, *_ = model(x, time_step)
 
   torch.testing.assert_close(joint_pos, motion.joint_pos[num_steps - 1 : num_steps])
+
+
+def test_onnx_motion_model_runtime_roundtrip_matches_pytorch():
+  """Exported _OnnxMotionModel matches PyTorch across in-range and clamped steps."""
+  ort = pytest.importorskip("onnxruntime")
+  actor = _make_actor(obs_normalization=True)
+  _train_normalizer(actor)
+  motion = _MockMotion(num_steps=20)
+  model = _OnnxMotionModel(actor, motion).eval()
+
+  output_names = [
+    "actions",
+    "joint_pos",
+    "joint_vel",
+    "body_pos_w",
+    "body_quat_w",
+    "body_lin_vel_w",
+    "body_ang_vel_w",
+  ]
+  with tempfile.TemporaryDirectory() as tmpdir:
+    path = Path(tmpdir) / "motion.onnx"
+    torch.onnx.export(
+      model,
+      (torch.zeros(1, model.policy.input_size), torch.zeros(1, 1)),
+      str(path),
+      export_params=True,
+      opset_version=18,
+      input_names=["obs", "time_step"],
+      output_names=output_names,
+      external_data=False,
+    )
+    assert not (Path(tmpdir) / "motion.onnx.data").exists()
+    onnx.checker.check_model(str(path))
+    sess = ort.InferenceSession(str(path))
+
+    for step in (0.0, 12.0, 999.0):
+      x = torch.randn(1, actor.obs_dim)
+      ts = torch.tensor([[step]], dtype=torch.float32)
+      ort_outs = sess.run(None, {"obs": x.numpy(), "time_step": ts.numpy()})
+      with torch.no_grad():
+        pt_outs = model(x, ts)
+      for actual, expected in zip(ort_outs, pt_outs, strict=True):
+        torch.testing.assert_close(
+          torch.from_numpy(actual), expected, atol=1e-5, rtol=0
+        )
 
 
 @pytest.mark.parametrize(
