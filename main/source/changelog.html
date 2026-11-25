@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 22, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 25, 2026"/>
   </head>
   
   
@@ -566,6 +566,9 @@ CUDA 12.6, for machines whose NVIDIA driver is older than 580. It does not inclu
 kernels for Blackwell GPUs.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">SimulationCfg.graph_conditional</span></code> to toggle MuJoCo Warp’s CUDA graph
 conditional nodes, which require CUDA 12.4 or newer.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">SimulationCfg.nccdmax</span></code> to set the number of convex collision detection
+contacts allocated per world separately from <code class="docutils literal notranslate"><span class="pre">nconmax</span></code>. Contribution by
+&#64;bd-pmorais.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">RslRlBaseRunnerCfg.logger</span></code> accepts the import path of an
 <code class="docutils literal notranslate"><span class="pre">rsl_rl.utils.LogWriter</span></code> subclass, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;my_pkg.writers:MyLogWriter&quot;</span></code>.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">RewardManager.term_rewards</span></code> and <code class="docutils literal notranslate"><span class="pre">RewardManager.get_term()</span></code> for the
@@ -1908,7 +1911,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 22, 2026.
+  Last updated on Nov 25, 2026.
   <br/>
 </p>
   </div>

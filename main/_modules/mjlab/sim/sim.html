@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 22, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 25, 2026"/>
   </head>
   
   
@@ -588,6 +588,11 @@ document.write(`
 
 <span class="sd">  Constraint arrays are batched by world: no world may have more than njmax</span>
 <span class="sd">  constraints. If None, a heuristic value is used.&quot;&quot;&quot;</span>
+  <span class="n">nccdmax</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Number of convex collision detection (CCD) contacts to allocate per world.</span>
+
+<span class="sd">  Each CCD contact reserves scratch memory for the EPA and multi-contact solvers.</span>
+<span class="sd">  Must not exceed nconmax. If None, it equals nconmax.&quot;&quot;&quot;</span>
   <span class="n">contact_sensor_maxmatch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span>
   <span class="n">broadphase</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;nxn&quot;</span><span class="p">,</span> <span class="s2">&quot;sap_tile&quot;</span><span class="p">,</span> <span class="s2">&quot;sap_segmented&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Broadphase collision algorithm. If None, use the MuJoCo Warp default.&quot;&quot;&quot;</span>
@@ -769,6 +774,7 @@ document.write(`
       <span class="bp">self</span><span class="o">.</span><span class="n">_mj_data</span><span class="p">,</span>
       <span class="n">nworld</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span>
       <span class="n">nconmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">nconmax</span><span class="p">,</span>
+      <span class="n">nccdmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">nccdmax</span><span class="p">,</span>
       <span class="n">njmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">njmax</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -1096,7 +1102,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 22, 2026.
+  Last updated on Nov 25, 2026.
   <br/>
 </p>
   </div>

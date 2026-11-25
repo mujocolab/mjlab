@@ -59,7 +59,7 @@
     <link rel="prev" title="mjlab.scene" href="scene.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Nov 22, 2026"/>
+    <meta name="docbuild:last-update" content="Nov 25, 2026"/>
   </head>
   
   
@@ -495,6 +495,7 @@ document.write(`
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg"><code class="docutils literal notranslate"><span class="pre">SimulationCfg</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.nconmax"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.nconmax</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.njmax"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.njmax</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.nccdmax"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.nccdmax</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.contact_sensor_maxmatch"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.contact_sensor_maxmatch</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.broadphase"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.broadphase</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.broadphase_filter"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.broadphase_filter</span></code></a></li>
@@ -704,6 +705,14 @@ contacts. If None, a heuristic value is used.</p>
 <dd><p>Number of constraints to allocate per world.</p>
 <p>Constraint arrays are batched by world: no world may have more than njmax
 constraints. If None, a heuristic value is used.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.sim.SimulationCfg.nccdmax">
+<span class="sig-name descname"><span class="pre">nccdmax</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.sim.SimulationCfg.nccdmax" title="Link to this definition">#</a></dt>
+<dd><p>Number of convex collision detection (CCD) contacts to allocate per world.</p>
+<p>Each CCD contact reserves scratch memory for the EPA and multi-contact solvers.
+Must not exceed nconmax. If None, it equals nconmax.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -957,6 +966,7 @@ such as expand_model_fields(), to ensure the cache reflects the updated arrays.<
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg"><code class="docutils literal notranslate"><span class="pre">SimulationCfg</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.nconmax"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.nconmax</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.njmax"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.njmax</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.nccdmax"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.nccdmax</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.contact_sensor_maxmatch"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.contact_sensor_maxmatch</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.broadphase"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.broadphase</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sim.SimulationCfg.broadphase_filter"><code class="docutils literal notranslate"><span class="pre">SimulationCfg.broadphase_filter</span></code></a></li>
@@ -1036,7 +1046,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Nov 22, 2026.
+  Last updated on Nov 25, 2026.
   <br/>
 </p>
   </div>
