@@ -105,6 +105,26 @@ def test_default_broadphase_keeps_put_model_heuristic(robot_xml, device):
   assert sim.wp_model.opt.broadphase_filter == heuristic_opt.broadphase_filter
 
 
+def test_nccdmax_sizes_ccd_arena(robot_xml, device):
+  """nccdmax sets the CCD arena per world; unset, it follows nconmax."""
+  model = mujoco.MjModel.from_xml_string(robot_xml)
+  num_envs = 3
+
+  sim = Simulation(
+    num_envs=num_envs,
+    cfg=SimulationCfg(nconmax=40, nccdmax=8),
+    model=model,
+    device=device,
+  )
+  assert sim.wp_data.naconmax == 40 * num_envs
+  assert sim.wp_data.naccdmax == 8 * num_envs
+
+  sim = Simulation(
+    num_envs=num_envs, cfg=SimulationCfg(nconmax=40), model=model, device=device
+  )
+  assert sim.wp_data.naccdmax == 40 * num_envs
+
+
 def test_ls_parallel_is_deprecated():
   """Setting the removed ls_parallel option warns instead of erroring."""
   with pytest.warns(DeprecationWarning, match="ls_parallel"):

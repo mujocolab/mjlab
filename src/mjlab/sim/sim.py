@@ -165,6 +165,11 @@ class SimulationCfg:
 
   Constraint arrays are batched by world: no world may have more than njmax
   constraints. If None, a heuristic value is used."""
+  nccdmax: int | None = None
+  """Number of convex collision detection (CCD) contacts to allocate per world.
+
+  Each CCD contact reserves scratch memory for the EPA and multi-contact solvers.
+  Must not exceed nconmax. If None, it equals nconmax."""
   contact_sensor_maxmatch: int = 64
   broadphase: Literal["nxn", "sap_tile", "sap_segmented"] | None = None
   """Broadphase collision algorithm. If None, use the MuJoCo Warp default."""
@@ -337,6 +342,7 @@ class Simulation:
       self._mj_data,
       nworld=self.num_envs,
       nconmax=self.cfg.nconmax,
+      nccdmax=self.cfg.nccdmax,
       njmax=self.cfg.njmax,
     )
 
