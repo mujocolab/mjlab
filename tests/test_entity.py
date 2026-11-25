@@ -9,6 +9,8 @@ import torch
 from conftest import get_test_device, load_fixture_xml
 
 from mjlab.actuator import BuiltinPositionActuatorCfg, XmlActuatorCfg
+from mjlab.actuator.actuator import TransmissionType
+from mjlab.actuator.builtin_actuator import BuiltinMotorActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.scene import Scene, SceneCfg
 from mjlab.sim.sim import Simulation, SimulationCfg
@@ -82,28 +84,64 @@ ACTUATOR_ORDER_TEST_XML = """
 </mujoco>
 """
 
+# Joints, tendons, and sites a-d, where a has no actuator.
 UNDERACTUATED_XML = """
 <mujoco>
   <worldbody>
-    <body name="base" pos="0 0 0">
-      <inertial pos="0 0 0" mass="1" diaginertia="0.01 0.01 0.01"/>
-      <geom type="box" size="0.1 0.1 0.1" rgba="0.5 0.5 0.5 1"/>
-      <joint name="joint_a" axis="1 0 0" range="-1 1"/>
+    <body name="base">
+      <joint name="joint_a" axis="1 0 0"/>
+      <geom size="0.1"/>
+      <site name="site_a"/>
+      <site name="site_b"/>
+      <site name="site_c"/>
+      <site name="site_d"/>
       <body name="link1" pos="0.2 0 0">
-        <inertial pos="0 0 0" mass="1" diaginertia="0.01 0.01 0.01"/>
-        <geom type="box" size="0.1 0.1 0.1" rgba="0.5 0.5 0.5 1"/>
-        <joint name="joint_b" axis="0 1 0" range="-1 1"/>
+        <joint name="joint_b" axis="0 1 0"/>
+        <geom size="0.1"/>
         <body name="link2" pos="0.2 0 0">
-          <inertial pos="0 0 0" mass="1" diaginertia="0.01 0.01 0.01"/>
-          <geom type="box" size="0.1 0.1 0.1" rgba="0.5 0.5 0.5 1"/>
-          <joint name="joint_c" axis="0 0 1" range="-1 1"/>
+          <joint name="joint_c" axis="0 0 1"/>
+          <geom size="0.1"/>
+          <body name="link3" pos="0.2 0 0">
+            <joint name="joint_d" axis="1 0 0"/>
+            <geom size="0.1"/>
+          </body>
         </body>
       </body>
     </body>
   </worldbody>
+  <tendon>
+    <fixed name="tendon_a"><joint joint="joint_a" coef="1"/></fixed>
+    <fixed name="tendon_b"><joint joint="joint_b" coef="1"/></fixed>
+    <fixed name="tendon_c"><joint joint="joint_c" coef="1"/></fixed>
+    <fixed name="tendon_d"><joint joint="joint_d" coef="1"/></fixed>
+  </tendon>
   <actuator>
-    <position name="act_c" joint="joint_c" kp="10"/>
+    <motor name="joint_act_d" joint="joint_d"/>
+    <motor name="joint_act_c" joint="joint_c"/>
+    <motor name="joint_act_b" joint="joint_b"/>
+    <motor name="tendon_act_d" tendon="tendon_d"/>
+    <motor name="tendon_act_c" tendon="tendon_c"/>
+    <motor name="tendon_act_b" tendon="tendon_b"/>
+    <motor name="site_act_d" site="site_d" gear="0 0 1 0 0 0"/>
+    <motor name="site_act_c" site="site_c" gear="0 0 1 0 0 0"/>
+    <motor name="site_act_b" site="site_b" gear="0 0 1 0 0 0"/>
   </actuator>
+</mujoco>
+"""
+
+# One joint, tendon, and site, all with the same name.
+SHARED_NAME_XML = """
+<mujoco>
+  <worldbody>
+    <body name="base">
+      <joint name="shared"/>
+      <geom size="0.1"/>
+      <site name="shared"/>
+    </body>
+  </worldbody>
+  <tendon>
+    <fixed name="shared"><joint joint="shared" coef="1"/></fixed>
+  </tendon>
 </mujoco>
 """
 
@@ -596,27 +634,94 @@ def test_ctrl_ids_follow_natural_joint_order(device):
   assert ctrl_ids == expected_ctrl_ids
 
 
-def test_find_joints_by_actuator_names_returns_entity_local_indices():
-  """Test that find_joints_by_actuator_names returns entity-local indices."""
+@pytest.fixture(scope="module")
+def underactuated_robot():
+  """Entity with actuators declared in reverse natural order (d, c, b)."""
   robot_cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(UNDERACTUATED_XML),
     articulation=EntityArticulationInfoCfg(
-      actuators=(XmlActuatorCfg(target_names_expr=(".*",)),)
+      actuators=tuple(
+        XmlActuatorCfg(
+          target_names_expr=(f"{transmission.value}_{suffix}",),
+          transmission_type=transmission,
+        )
+        for transmission in TransmissionType
+        for suffix in "dcb"
+      )
     ),
   )
+  robot = Entity(robot_cfg)
+  robot.compile()
+  return robot
 
+
+def find_by_actuator_names(robot, transmission, *args, **kwargs):
+  """Call the find_*_by_actuator_names method of the given transmission type."""
+  find = getattr(robot, f"find_{transmission.value}s_by_actuator_names")
+  return find(*args, **kwargs)
+
+
+@pytest.mark.parametrize("transmission", TransmissionType)
+def test_find_by_actuator_names_returns_entity_local_indices(
+  underactuated_robot, transmission
+):
+  """Indices refer to all entity targets, not to the actuated subset."""
+  ids, names = find_by_actuator_names(underactuated_robot, transmission, ".*")
+
+  # Entity-local [1, 2, 3], not subset-local [0, 1, 2].
+  prefix = transmission.value
+  assert names == [f"{prefix}_b", f"{prefix}_c", f"{prefix}_d"]
+  assert ids == [1, 2, 3]
+
+
+@pytest.mark.parametrize("transmission", TransmissionType)
+@pytest.mark.parametrize(
+  "preserve_order,expected_ids,expected_suffixes",
+  [
+    (False, [1, 2, 3], "bcd"),
+    (True, [2, 1, 3], "cbd"),
+  ],
+)
+def test_find_by_actuator_names_order(
+  underactuated_robot, transmission, preserve_order, expected_ids, expected_suffixes
+):
+  """Order is natural by default and follows the patterns with preserve_order."""
+  prefix = transmission.value
+  ids, names = find_by_actuator_names(
+    underactuated_robot,
+    transmission,
+    (f"{prefix}_c", f"{prefix}_[bd]"),
+    preserve_order=preserve_order,
+  )
+
+  assert names == [f"{prefix}_{suffix}" for suffix in expected_suffixes]
+  assert ids == expected_ids
+
+
+@pytest.mark.filterwarnings("ignore:Actuator config matched")
+@pytest.mark.parametrize("driven", TransmissionType)
+def test_find_by_actuator_names_ignores_other_transmission_types(driven):
+  """A name shared across namespaces matches only where it is driven."""
+  robot_cfg = EntityCfg(
+    spec_fn=lambda: mujoco.MjSpec.from_string(SHARED_NAME_XML),
+    articulation=EntityArticulationInfoCfg(
+      actuators=(
+        BuiltinMotorActuatorCfg(
+          target_names_expr=("shared",),
+          transmission_type=driven,
+          effort_limit=1.0,
+        ),
+      )
+    ),
+  )
   robot = Entity(robot_cfg)
   robot.compile()
 
-  # Natural joint order: joint_a (0), joint_b (1), joint_c (2).
-  assert list(robot.joint_names) == ["joint_a", "joint_b", "joint_c"]
+  assert find_by_actuator_names(robot, driven, "shared") == ([0], ["shared"])
 
-  # Only joint_c has an actuator.
-  joint_ids, joint_names = robot.find_joints_by_actuator_names(".*")
-
-  # Should return entity-local index [2], not subset-local [0].
-  assert joint_names == ["joint_c"]
-  assert joint_ids == [2]  # Index of joint_c in self.joint_names.
+  for other in set(TransmissionType) - {driven}:
+    with pytest.raises(ValueError, match="Not all regular expressions are matched"):
+      find_by_actuator_names(robot, other, "shared")
 
 
 @dataclass
@@ -809,9 +914,6 @@ XML_WITH_SITES_AND_TENDONS = """
 
 def test_tendon_and_site_targets_only_allocated_when_needed(device):
   """Test that tendon/site targets are only allocated when actuators use them."""
-  from mjlab.actuator import BuiltinMotorActuatorCfg
-  from mjlab.actuator.actuator import TransmissionType
-
   # Entity with sites and tendons but NO site/tendon actuators.
   # Should allocate empty tensors for site and tendon targets.
   cfg = EntityCfg(
@@ -849,8 +951,6 @@ def test_tendon_and_site_targets_only_allocated_when_needed(device):
 
 def test_add_actuators_wrong_namespace_error_includes_hint():
   """Error message includes namespace hint when name exists in another namespace."""
-  from mjlab.actuator.actuator import TransmissionType
-
   cfg = EntityCfg(
     spec_fn=lambda: mujoco.MjSpec.from_string(XML_WITH_SITES_AND_TENDONS),
     articulation=EntityArticulationInfoCfg(
