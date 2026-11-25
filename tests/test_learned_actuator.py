@@ -54,14 +54,19 @@ def identity_network_file(tmp_path_factory):
   """Create a simple identity network: output = sum of all inputs."""
 
   class IdentityNet(torch.nn.Module):
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
       # Sum all inputs and return as single output per joint.
       return x.sum(dim=1, keepdim=True)
 
-  net = IdentityNet()
+  net = IdentityNet().eval()
+  ep = torch.export.export(
+    net,
+    (torch.zeros(2, 4),),
+    dynamic_shapes={"x": {0: torch.export.Dim.DYNAMIC, 1: torch.export.Dim.DYNAMIC}},
+  )
   tmp_dir = tmp_path_factory.mktemp("networks")
-  network_path = tmp_dir / "identity_net.pt"
-  torch.jit.script(net).save(str(network_path))
+  network_path = tmp_dir / "identity_net.pt2"
+  torch.export.save(ep, str(network_path))
   return str(network_path)
 
 
@@ -70,14 +75,19 @@ def constant_network_file(tmp_path_factory):
   """Create a network that returns constant value regardless of input."""
 
   class ConstantNet(torch.nn.Module):
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
       # Return constant 10.0 for each joint.
       return torch.full((x.shape[0], 1), 10.0, device=x.device)
 
-  net = ConstantNet()
+  net = ConstantNet().eval()
+  ep = torch.export.export(
+    net,
+    (torch.zeros(2, 4),),
+    dynamic_shapes={"x": {0: torch.export.Dim.DYNAMIC, 1: torch.export.Dim.DYNAMIC}},
+  )
   tmp_dir = tmp_path_factory.mktemp("networks")
-  network_path = tmp_dir / "constant_net.pt"
-  torch.jit.script(net).save(str(network_path))
+  network_path = tmp_dir / "constant_net.pt2"
+  torch.export.save(ep, str(network_path))
   return str(network_path)
 
 
@@ -85,22 +95,27 @@ def constant_network_file(tmp_path_factory):
 def subtract_network_file(tmp_path_factory):
   """Create a network that subtracts second half from first half of inputs.
 
-  For input [a, b, c, d], returns (a + b) - (c + d).
+  For input [a, b], returns a - b (for history_length=1).
   This is sensitive to input order, unlike sum-based networks.
   """
 
   class SubtractNet(torch.nn.Module):
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
       # Split input in half and subtract second half from first half.
       mid = x.shape[1] // 2
       first_half = x[:, :mid].sum(dim=1, keepdim=True)
       second_half = x[:, mid:].sum(dim=1, keepdim=True)
       return first_half - second_half
 
-  net = SubtractNet()
+  net = SubtractNet().eval()
+  ep = torch.export.export(
+    net,
+    (torch.zeros(2, 2),),
+    dynamic_shapes={"x": {0: torch.export.Dim.DYNAMIC}},
+  )
   tmp_dir = tmp_path_factory.mktemp("networks")
-  network_path = tmp_dir / "subtract_net.pt"
-  torch.jit.script(net).save(str(network_path))
+  network_path = tmp_dir / "subtract_net.pt2"
+  torch.export.save(ep, str(network_path))
   return str(network_path)
 
 
@@ -121,7 +136,7 @@ def initialize_entity(entity, device, num_envs=1):
 
 
 def test_learned_mlp_network_loads(device, identity_network_file):
-  """Verify network loads from TorchScript file and initializes."""
+  """Verify network loads from torch.export (.pt2) file and initializes."""
   entity = create_entity_with_actuator(
     LearnedMlpActuatorCfg(
       target_names_expr=("joint.*",),
@@ -476,3 +491,60 @@ def test_learned_mlp_multi_joint_reshaping(device, identity_network_file):
   # Network input for joint 2: [3.0, 4.0] → sum = 7.0
   ctrl = sim.data.ctrl[0]
   assert torch.allclose(ctrl, torch.tensor([3.0, 7.0], device=device), atol=1e-4)
+
+
+def test_learned_mlp_parameterized_network_matches_pytorch(device, tmp_path):
+  """Parameterized MLP saved via torch.export matches eager PyTorch inference."""
+  torch.manual_seed(0)
+
+  class SmallMlp(torch.nn.Module):
+    def __init__(self):
+      super().__init__()
+      self.net = torch.nn.Sequential(
+        torch.nn.Linear(2, 8),
+        torch.nn.Softsign(),
+        torch.nn.Linear(8, 1),
+      )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+      return self.net(x)
+
+  net = SmallMlp().eval()
+  ep = torch.export.export(
+    net,
+    (torch.zeros(2, 2),),
+    dynamic_shapes={"x": {0: torch.export.Dim.DYNAMIC}},
+  )
+  network_path = tmp_path / "mlp.pt2"
+  torch.export.save(ep, str(network_path))
+
+  entity = create_entity_with_actuator(
+    LearnedMlpActuatorCfg(
+      target_names_expr=("joint.*",),
+      network_file=str(network_path),
+      pos_scale=0.5,
+      vel_scale=0.25,
+      torque_scale=2.0,
+      input_order="pos_vel",
+      history_length=1,
+      saturation_effort=100.0,
+      velocity_limit=30.0,
+      effort_limit=100.0,
+    )
+  )
+  entity, sim = initialize_entity(entity, device, num_envs=3)
+
+  joint_pos = torch.tensor([[0.1], [-0.2], [0.5]], device=device)
+  joint_vel = torch.tensor([[1.0], [-0.5], [0.2]], device=device)
+  pos_target = torch.tensor([[0.6], [0.3], [-0.1]], device=device)
+  entity.write_joint_state_to_sim(joint_pos, joint_vel)
+  entity.set_joint_position_target(pos_target)
+  entity.set_joint_velocity_target(torch.zeros(3, 1, device=device))
+  entity.set_joint_effort_target(torch.zeros(3, 1, device=device))
+  entity.write_data_to_sim()
+
+  net_on_device = net.to(device)
+  expected_in = torch.cat([(pos_target - joint_pos) * 0.5, joint_vel * 0.25], dim=1)
+  with torch.inference_mode():
+    expected_ctrl = net_on_device(expected_in) * 2.0
+  assert torch.allclose(sim.data.ctrl, expected_ctrl, atol=1e-5, rtol=1e-5)

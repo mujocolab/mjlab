@@ -34,6 +34,14 @@ Added
 Changed
 ^^^^^^^
 
+- Removed deprecated TorchScript API usage across the codebase:
+
+  - ``LearnedMlpActuator`` now loads ``torch.export`` (``.pt2``) archives saved
+    with ``torch.export.save()`` instead of TorchScript files.
+  - ONNX policy export now uses PyTorch's default ``torch.export``-based exporter
+    with ``external_data=False`` instead of the legacy ``dynamo=False``
+    TorchScript exporter, and bumps ``onnxscript`` to ``>=0.7.2``.
+  - Removed ``@torch.jit.script`` decorators from ``mjlab.utils.lab_api.math``.
 - Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on ``mujoco-core``
   instead of ``mujoco``. To upgrade an existing environment, run
   ``uv sync --reinstall-package mujoco-core``: removing ``mujoco`` deletes files that

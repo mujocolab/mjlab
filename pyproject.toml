@@ -48,7 +48,7 @@ dependencies = [
   "tensordict",
   "rsl-rl-lib==5.5.2",
   "tensorboard>=2.20.0",
-  "onnxscript>=0.5.4",
+  "onnxscript>=0.7.2",
   "wandb>=0.22.3",
 ]
 
