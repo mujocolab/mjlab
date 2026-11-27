@@ -1,13 +1,13 @@
 """Script to run a tracking demo with a pretrained policy.
 
-This demo downloads a pretrained checkpoint and motion file from cloud storage
+This demo downloads a pretrained checkpoint and motion file from GitHub releases
 and launches an interactive viewer with a humanoid robot performing a cartwheel.
 """
 
 import tyro
 
 import mjlab
-from mjlab.scripts.gcs import ensure_default_checkpoint, ensure_default_motion
+from mjlab.scripts.demo_assets import ensure_default_checkpoint, ensure_default_motion
 from mjlab.scripts.play import PlayConfig, run_play
 
 
