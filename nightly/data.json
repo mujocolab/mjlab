@@ -4138,5 +4138,20 @@
       "ee_pos_error": 0.04745901748538017,
       "ee_ori_error": 0.16600222885608673
     }
+  },
+  {
+    "id": "geqlaj2m",
+    "name": "2026-11-27_02-12-17",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/geqlaj2m",
+    "created_at": "2026-11-27T10:12:21Z",
+    "commit": "d872bfd",
+    "metrics": {
+      "success_rate": 0.9658203125,
+      "mpkpe": 0.10480280220508575,
+      "r_mpkpe": 0.027830500155687332,
+      "joint_vel_error": 0.5445601940155029,
+      "ee_pos_error": 0.04286465421319008,
+      "ee_ori_error": 0.1634441465139389
+    }
   }
 ]
