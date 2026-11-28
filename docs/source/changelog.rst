@@ -74,6 +74,10 @@ Changed
 Fixed
 ^^^^^
 
+- Tactile sensors on mesh geoms now raise the documented ``ValueError`` when taxels
+  miss the convex hull. A ray parallel to a hull face, such as the side faces of an
+  axis-aligned box mesh, was counted as a hit, so the grid landed on the extended
+  face plane outside the geom.
 - ``project_points()`` now keeps the leading dimension for a batch of one and
   returns unbatched projections without an extra dimension.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,

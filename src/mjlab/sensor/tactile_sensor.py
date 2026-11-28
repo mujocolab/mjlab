@@ -283,11 +283,14 @@ def _ray_hull(
   normals[flip], offsets[flip] = -normals[flip], -offsets[flip]
 
   # Clip each ray against every face plane; it enters at the last entering plane.
+  side = origins @ normals.T + offsets
   denom = normals @ direction
-  t = -(origins @ normals.T + offsets) / np.where(denom == 0, np.inf, denom)
+  t = -side / np.where(denom == 0, np.inf, denom)
   t_enter = np.where(denom < 0, t, -np.inf)
   entry = t_enter.argmax(1)
   t_in = t_enter.max(1)
   t_out = np.where(denom > 0, t, np.inf).min(1)
-  hit = (t_in <= t_out) & (t_in >= 0)
+  # A ray parallel to a face plane never crosses it, so starting outside misses.
+  parallel_outside = np.any((denom == 0) & (side > 0), axis=1)
+  hit = (t_in <= t_out) & (t_in >= 0) & ~parallel_outside
   return np.where(hit, t_in, -1.0), normals[entry]
