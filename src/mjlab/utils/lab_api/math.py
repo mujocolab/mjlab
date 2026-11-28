@@ -1766,9 +1766,8 @@ def interpolate_rotations(R1: torch.Tensor, R2: torch.Tensor, num_steps: int, ax
         rot_step_size = delta_angle / num_steps
 
         # Convert into delta rotation matrices, and then convert to absolute rotations
-        if delta_angle < 0.05:
-            # Small angle - don't bother with interpolation
-            rot_steps = torch.stack([R2 for _ in range(num_steps)])
+        if delta_angle == 0:
+            rot_steps = R1.unsqueeze(0).expand(num_steps, -1, -1)
         else:
             # Make sure that axis is a unit vector
             delta_axis = delta_axis_angle / delta_angle
@@ -1819,12 +1818,7 @@ def interpolate_poses(
     pos2, rot2 = unmake_pose(pose_2)
 
     if num_steps == 0:
-        # Skip interpolation
-        return (
-            torch.cat([pos1[None], pos2[None]], dim=0),
-            torch.cat([rot1[None], rot2[None]], dim=0),
-            num_steps,
-        )
+        return torch.stack((pose_1, pose_2)), num_steps
 
     delta_pos = pos2 - pos1
     if num_steps is None:
