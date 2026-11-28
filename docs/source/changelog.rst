@@ -34,6 +34,8 @@ Added
 Changed
 ^^^^^^^
 
+- ``demo`` downloads its checkpoint and motion from a GitHub release instead of
+  Google Cloud Storage.
 - Upgraded MuJoCo and MuJoCo Warp to 4.0.1. mjlab now depends on ``mujoco-core``
   instead of ``mujoco``. To upgrade an existing environment, run
   ``uv sync --reinstall-package mujoco-core``: removing ``mujoco`` deletes files that
