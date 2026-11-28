@@ -248,6 +248,12 @@ matched element indices and names:
 
 Available methods: ``find_bodies()``, ``find_joints()``,
 ``find_geoms()``, ``find_sites()``, ``find_tendons()``.
+To match only elements driven by an actuator, use
+``find_joints_by_actuator_names()``, ``find_sites_by_actuator_names()``,
+or ``find_tendons_by_actuator_names()``. Each considers actuators of its
+own transmission type and returns entity-local indices. All of these
+methods return matches in entity order unless ``preserve_order=True``,
+which follows the order of the patterns instead.
 These are used internally during scene construction and manager
 initialization. In reward and observation terms, prefer
 ``SceneEntityCfg`` with name patterns as described below.

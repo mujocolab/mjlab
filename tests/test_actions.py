@@ -13,6 +13,7 @@ from mjlab.actuator.builtin_actuator import BuiltinMotorActuatorCfg
 from mjlab.entity import Entity, EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.envs.mdp.actions import (
+  JointEffortActionCfg,
   JointPositionActionCfg,
   RelativeJointPositionActionCfg,
   SiteEffortActionCfg,
@@ -21,6 +22,41 @@ from mjlab.envs.mdp.actions import (
   TendonVelocityActionCfg,
 )
 from mjlab.sim.sim import Simulation, SimulationCfg
+
+# Each namespace has an undriven target first, so that indices into the driven subset
+# differ from entity-local indices.
+PARTIALLY_ACTUATED_XML = """
+<mujoco>
+  <worldbody>
+    <body name="link_a">
+      <joint name="joint_a" type="hinge"/>
+      <geom size="0.1"/>
+      <site name="site_a"/>
+      <site name="site_b"/>
+      <site name="site_c"/>
+      <body name="link_b" pos="0 0 1">
+        <joint name="joint_b" type="hinge"/>
+        <geom size="0.1"/>
+        <body name="link_c" pos="0 0 1">
+          <joint name="joint_c" type="hinge"/>
+          <geom size="0.1"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <tendon>
+    <fixed name="tendon_a"><joint joint="joint_a" coef="1"/></fixed>
+    <fixed name="tendon_b"><joint joint="joint_b" coef="1"/></fixed>
+    <fixed name="tendon_c"><joint joint="joint_c" coef="1"/></fixed>
+  </tendon>
+</mujoco>
+"""
+
+EFFORT_ACTIONS = [
+  (JointEffortActionCfg, TransmissionType.JOINT),
+  (TendonEffortActionCfg, TransmissionType.TENDON),
+  (SiteEffortActionCfg, TransmissionType.SITE),
+]
 
 
 @pytest.fixture(scope="module")
@@ -100,6 +136,15 @@ def make_env(entity, name, device):
   env.device = device
   env.scene = {name: entity}
   return env
+
+
+def make_partially_actuated_env(transmission, device):
+  """Create mock environment where targets b and c are driven and a is not."""
+  prefix = transmission.value
+  entity = make_entity(
+    PARTIALLY_ACTUATED_XML, (f"{prefix}_b", f"{prefix}_c"), transmission, device
+  )
+  return make_env(entity, "robot", device)
 
 
 def test_base_action_applies_scale_and_offset(tendon_finger_entity, device):
@@ -216,6 +261,45 @@ def test_action_sets_entity_target(
 
   entity_target = getattr(entity.data, target_attr)
   assert torch.allclose(entity_target, target)
+
+
+@pytest.mark.parametrize("cfg_cls,transmission", EFFORT_ACTIONS)
+def test_action_selects_only_actuated_targets(device, cfg_cls, transmission):
+  """Only driven targets are selectable, and they keep entity-local indices."""
+  env = make_partially_actuated_env(transmission, device)
+  prefix = transmission.value
+
+  action = cfg_cls(entity_name="robot", actuator_names=(".*",)).build(env)
+  assert action.target_names == [f"{prefix}_b", f"{prefix}_c"]
+  assert action.target_ids.tolist() == [1, 2]
+
+  # Naming an undriven target explicitly is an error.
+  undriven_cfg = cfg_cls(entity_name="robot", actuator_names=(f"{prefix}_a",))
+  with pytest.raises(ValueError, match="Not all regular expressions are matched"):
+    undriven_cfg.build(env)
+
+
+@pytest.mark.parametrize("cfg_cls,transmission", EFFORT_ACTIONS)
+def test_action_preserve_order(device, cfg_cls, transmission):
+  """preserve_order follows the given names and routes values to the right targets."""
+  env = make_partially_actuated_env(transmission, device)
+  prefix = transmission.value
+  names = (f"{prefix}_c", f"{prefix}_b")
+
+  natural = cfg_cls(entity_name="robot", actuator_names=names).build(env)
+  assert natural.target_ids.tolist() == [1, 2]
+
+  cfg = cfg_cls(entity_name="robot", actuator_names=names, preserve_order=True)
+  action = cfg.build(env)
+  assert action.target_names == list(names)
+  assert action.target_ids.tolist() == [2, 1]
+
+  action.process_actions(torch.tensor([[1.0, 2.0]], device=device).expand(4, -1))
+  action.apply_actions()
+
+  target = getattr(env.scene["robot"].data, f"{prefix}_effort_target")
+  expected = torch.tensor([[0.0, 2.0, 1.0]], device=device).expand(4, -1)
+  assert torch.allclose(target, expected)
 
 
 def test_base_action_clip(fixed_base_entity, device):

@@ -87,13 +87,13 @@ Action types
      - Sets joint effort (torque) targets directly. No default offset.
    * - ``TendonLengthAction``
      - Sets tendon length targets. Targets are resolved by matching
-       ``actuator_names`` against tendon names.
+       ``actuator_names`` against the names of actuated tendons.
    * - ``TendonVelocityAction``
      - Sets tendon velocity targets.
    * - ``TendonEffortAction``
      - Sets tendon effort targets.
    * - ``SiteEffortAction``
-     - Applies forces and torques at named sites. Useful for
+     - Applies forces and torques at actuated sites. Useful for
        quadrotors and drones where thrust is applied at rotor sites
        rather than through joint actuators.
 
