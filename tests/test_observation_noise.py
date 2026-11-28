@@ -311,6 +311,59 @@ def test_per_dimension_additive_bias_reset_before_first_call(device):
   assert torch.all(model(data).abs() <= torch.tensor([0.1, 0.2, 0.3], device=device))
 
 
+@pytest.mark.parametrize("shape", [(), (3,), (2, 3), (2, 4, 3)])
+@pytest.mark.parametrize("per_component", [True, False])
+def test_additive_bias_preserves_observation_shape_and_envs(
+  mock_env, device, shape, per_component
+):
+  """Bias stays per-env, including when a spatial dimension equals num_envs."""
+
+  def obs_func(env):
+    return torch.zeros((env.num_envs, *shape), device=device)
+
+  cfg = {
+    "sensor": ObservationGroupCfg(
+      terms={
+        "reading": ObservationTermCfg(
+          func=obs_func,
+          noise=NoiseModelWithAdditiveBiasCfg(
+            noise_cfg=ConstantNoiseCfg(bias=0.0),
+            bias_noise_cfg=UniformNoiseCfg(n_min=-1.0, n_max=1.0),
+            sample_bias_per_component=per_component,
+          ),
+        ),
+      },
+      concatenate_terms=False,
+      enable_corruption=True,
+    ),
+  }
+  manager = ObservationManager(cfg, mock_env)
+  torch.manual_seed(42)
+  manager.reset()
+  observations = manager.compute()["sensor"]
+  assert not isinstance(observations, torch.Tensor)
+  before = observations["reading"].clone()
+  assert before.shape == (mock_env.num_envs, *shape)
+
+  # All spatial components share one bias only when requested.
+  components = before.reshape(mock_env.num_envs, -1)
+  if per_component and components.shape[1] > 1:
+    assert not torch.equal(components[:, 0], components[:, 1])
+  else:
+    torch.testing.assert_close(components, components[:, :1].expand_as(components))
+
+  repeated = manager.compute_group("sensor")
+  assert not isinstance(repeated, torch.Tensor)
+  torch.testing.assert_close(repeated["reading"], before)
+
+  manager.reset(torch.tensor([0], device=device))
+  observations = manager.compute()["sensor"]
+  assert not isinstance(observations, torch.Tensor)
+  after = observations["reading"]
+  assert not torch.equal(after[0], before[0])
+  torch.testing.assert_close(after[1:], before[1:], rtol=0, atol=0)
+
+
 def test_multiple_terms_with_different_noise(mock_env, device):
   """Test multiple observation terms with different noise configs."""
 

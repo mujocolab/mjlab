@@ -74,6 +74,9 @@ Changed
 Fixed
 ^^^^^
 
+- Additive observation bias now preserves scalar and multidimensional observation
+  shapes. Spatial dimensions no longer cause broadcasting errors or share biases
+  across environments, and partial resets only resample the selected environments.
 - ``project_points()`` now keeps the leading dimension for a batch of one and
   returns unbatched projections without an extra dimension.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
