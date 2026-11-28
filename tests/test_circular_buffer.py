@@ -273,3 +273,14 @@ def test_getitem_lag_clamps_to_oldest_after_wrap(device):
   # A lag beyond the retained history clamps to the oldest frame instead of
   # wrapping around to a newer one.
   assert buffer[torch.tensor([2], device=device)].flatten().item() == 2.0
+
+
+def test_circular_buffer_reset_tuple_batch_ids(device):
+  buffer = CircularBuffer(max_len=2, batch_size=3, device=device)
+  buffer.append(torch.tensor([1.0, 2.0, 3.0], device=device))
+  buffer.append(torch.tensor([4.0, 5.0, 6.0], device=device))
+
+  buffer.reset(batch_ids=(0, 2))
+
+  assert buffer.current_length.tolist() == [0, 2, 0]
+  assert buffer.buffer.tolist() == [[0.0, 0.0], [2.0, 5.0], [0.0, 0.0]]

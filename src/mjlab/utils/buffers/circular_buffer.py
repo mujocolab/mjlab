@@ -180,9 +180,10 @@ class CircularBuffer:
     Args:
       batch_ids: Batch indices to reset, or None to reset all.
     """
-    ids: Sequence[int] | torch.Tensor | slice = (
-      slice(None) if batch_ids is None else batch_ids
-    )
+    # PyTorch interprets a tuple of IDs as indices into separate dimensions.
+    if isinstance(batch_ids, Sequence):
+      batch_ids = list(batch_ids)
+    ids = slice(None) if batch_ids is None else batch_ids
     self._num_pushes[ids] = 0
     if self._buffer is not None:
       self._buffer[:, ids] = 0.0

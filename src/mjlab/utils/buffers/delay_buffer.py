@@ -197,6 +197,8 @@ class DelayBuffer:
       lags: Lag values to set. Shape: (num_batch_ids,) or scalar.
       batch_ids: Batch indices to set, or None to set all.
     """
+    if isinstance(batch_ids, Sequence):
+      batch_ids = list(batch_ids)
     idx = slice(None) if batch_ids is None else batch_ids
     self._current_lags[idx] = lags.clamp(self.min_lag, self.max_lag)
     self._needs_lag[idx] = False
@@ -212,6 +214,8 @@ class DelayBuffer:
     if isinstance(batch_ids, slice):
       indices = range(*batch_ids.indices(self.batch_size))
       batch_ids = list(indices)
+    elif isinstance(batch_ids, Sequence):
+      batch_ids = list(batch_ids)
 
     self._buffer.reset(batch_ids=batch_ids)
     # A shared lag belongs to the whole batch, so only a full reset clears it.
