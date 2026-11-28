@@ -74,6 +74,8 @@ Changed
 Fixed
 ^^^^^
 
+- Pinhole ray patterns created from an intrinsic matrix now respect both focal
+  lengths and an off-center principal point.
 - ``project_points()`` now keeps the leading dimension for a batch of one and
   returns unbatched projections without an extra dimension.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,

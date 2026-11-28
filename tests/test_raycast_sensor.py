@@ -563,6 +563,21 @@ def test_pinhole_from_intrinsic_matrix():
   assert cfg.height == height
 
 
+def test_pinhole_rays_preserve_calibrated_intrinsics():
+  """Unequal focal lengths and an off-center principal point survive."""
+  cfg = PinholeCameraPatternCfg.from_intrinsic_matrix(
+    [4.0, 0.0, 0.5, 0.0, 2.0, 1.5, 0.0, 0.0, 1.0], width=3, height=2
+  )
+  _, directions = cfg.generate_rays(None, "cpu")
+
+  # Slopes recover the image-plane coordinates before normalization.
+  slopes = directions[:, :2] / -directions[:, 2:]
+  expected = torch.tensor(
+    [[0.0, 0.5], [0.25, 0.5], [0.5, 0.5], [0.0, 0.0], [0.25, 0.0], [0.5, 0.0]]
+  )
+  torch.testing.assert_close(slopes, expected)
+
+
 def test_pinhole_from_mujoco_camera(device):
   """Verify pinhole pattern can be created from MuJoCo camera."""
   # XML with a camera that has explicit resolution, sensorsize, and focal.
