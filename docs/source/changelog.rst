@@ -74,6 +74,8 @@ Changed
 Fixed
 ^^^^^
 
+- ``csv_to_npz`` now computes angular velocities for two-frame motions, including
+  clips reduced to two frames by cropping or resampling.
 - ``project_points()`` now keeps the leading dimension for a batch of one and
   returns unbatched projections without an extra dimension.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,
