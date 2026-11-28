@@ -74,6 +74,9 @@ Changed
 Fixed
 ^^^^^
 
+- Observation buffers accept tuples of environment IDs for partial resets
+  and lag assignments instead of raising an indexing error.
+
 - ``project_points()`` now keeps the leading dimension for a batch of one and
   returns unbatched projections without an extra dimension.
 - YAM RGB and depth cube-lifting tasks now use separate experiment directories,

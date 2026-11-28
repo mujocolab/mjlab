@@ -416,3 +416,26 @@ def test_backfill_and_peek_leave_others_untouched(device):
   assert torch.allclose(out[keep], out_before[keep])
   assert torch.equal(buf.current_lags[keep], lags_before[keep])
   assert torch.equal(buf._step_count[keep], steps_before[keep])
+
+
+def test_delay_buffer_set_lags_tuple_batch_ids(device):
+  buffer = DelayBuffer(min_lag=0, max_lag=2, batch_size=3, device=device)
+  buffer.append(torch.tensor([1.0, 2.0, 3.0], device=device))
+  buffer.append(torch.tensor([4.0, 5.0, 6.0], device=device))
+
+  buffer.set_lags(torch.tensor([1, 0], device=device), batch_ids=(2, 0))
+
+  assert buffer.current_lags.tolist() == [0, 0, 1]
+  assert buffer.peek().tolist() == [4.0, 5.0, 3.0]
+
+
+def test_delay_buffer_reset_tuple_batch_ids(device):
+  buffer = DelayBuffer(min_lag=0, max_lag=2, batch_size=3, device=device)
+  buffer.append(torch.tensor([1.0, 2.0, 3.0], device=device))
+  buffer.append(torch.tensor([4.0, 5.0, 6.0], device=device))
+  buffer.set_lags(torch.ones(3, dtype=torch.long, device=device))
+
+  buffer.reset(batch_ids=(0, 2))
+
+  assert buffer.current_lags.tolist() == [0, 1, 0]
+  assert buffer.peek().tolist() == [0.0, 2.0, 0.0]
