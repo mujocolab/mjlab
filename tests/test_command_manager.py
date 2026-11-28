@@ -1,6 +1,7 @@
 """Tests for command manager."""
 
 from dataclasses import dataclass
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -8,7 +9,12 @@ import torch
 from conftest import get_test_device
 
 from mjlab.envs import ManagerBasedRlEnv
-from mjlab.managers.command_manager import CommandTerm, CommandTermCfg
+from mjlab.managers.command_manager import (
+  CommandManager,
+  CommandTerm,
+  CommandTermCfg,
+  NullCommandManager,
+)
 from mjlab.tasks.cartpole.cartpole_env_cfg import cartpole_balance_env_cfg
 from mjlab.tasks.tracking.mdp.commands import MotionCommand
 
@@ -58,6 +64,80 @@ def counter_env(device):
   env = ManagerBasedRlEnv(cfg=cfg, device=device)
   yield env
   env.close()
+
+
+class CheckpointCounterCommand(CounterCommand):
+  def state_dict(self) -> dict[str, Any]:
+    return {"ticks": self.ticks.clone()}
+
+  def load_state_dict(self, state: dict[str, Any]) -> None:
+    self.ticks.copy_(state["ticks"].to(self.device))
+
+
+@dataclass(kw_only=True)
+class CheckpointCounterCommandCfg(CounterCommandCfg):
+  def build(self, env) -> CheckpointCounterCommand:
+    return CheckpointCounterCommand(self, env)
+
+
+@pytest.fixture
+def checkpoint_manager():
+  env = Mock(num_envs=2, device="cpu")
+  return CommandManager(
+    {
+      "first": CheckpointCounterCommandCfg(),
+      "second": CheckpointCounterCommandCfg(),
+      "stateless": CounterCommandCfg(),
+    },
+    env,
+  )
+
+
+def test_command_checkpoint_round_trip(checkpoint_manager, tmp_path):
+  manager = checkpoint_manager
+  first = manager.get_term("first")
+  second = manager.get_term("second")
+  assert isinstance(first, CheckpointCounterCommand)
+  assert isinstance(second, CheckpointCounterCommand)
+  first.ticks[:] = torch.tensor([3, 7])
+  second.ticks[:] = torch.tensor([5, 9])
+  state = manager.state_dict()
+  assert set(state) == {"first", "second"}
+
+  path = tmp_path / "commands.pt"
+  torch.save(state, path)
+  first.ticks.zero_()
+  second.ticks.zero_()
+  manager.load_state_dict(torch.load(path, weights_only=True))
+  assert first.ticks.tolist() == [3, 7]
+  assert second.ticks.tolist() == [5, 9]
+
+
+def test_command_checkpoint_missing_and_unknown_terms(checkpoint_manager):
+  first = checkpoint_manager.get_term("first")
+  second = checkpoint_manager.get_term("second")
+  assert isinstance(first, CheckpointCounterCommand)
+  assert isinstance(second, CheckpointCounterCommand)
+  second.ticks.fill_(8)
+  checkpoint_manager.load_state_dict(
+    {"first": {"ticks": torch.tensor([2, 4])}, "removed": {"value": 1}}
+  )
+  assert first.ticks.tolist() == [2, 4]
+  assert second.ticks.tolist() == [8, 8]
+
+
+def test_default_command_checkpoint_hooks(checkpoint_manager):
+  term = checkpoint_manager.get_term("stateless")
+  before = term.command.clone()
+  assert term.state_dict() == {}
+  term.load_state_dict({"unused": 1})
+  torch.testing.assert_close(term.command, before)
+
+
+def test_empty_command_checkpoint():
+  for manager in (CommandManager({}, Mock()), NullCommandManager()):
+    assert manager.state_dict() == {}
+    manager.load_state_dict({"removed": {"value": 1}})
 
 
 def test_partial_reset_does_not_advance_other_envs(counter_env):

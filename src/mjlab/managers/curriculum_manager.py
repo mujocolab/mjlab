@@ -116,6 +116,32 @@ class CurriculumManager(ManagerBase):
       state = term_cfg.func(self._env, env_ids, **term_cfg.params)
       self._curriculum_state[name] = state
 
+  def state_dict(self) -> dict[str, dict[str, Any]]:
+    """Collect non-empty state from curriculum terms with a state_dict hook.
+
+    Terms choose which progress to serialize. Reported curriculum metrics are
+    not automatically saved. Callers must include this state in checkpoints.
+    """
+    state = {}
+    for name, cfg in zip(self._term_names, self._term_cfgs, strict=True):
+      save = getattr(cfg.func, "state_dict", None)
+      if callable(save):
+        term_state = save()
+        if term_state:
+          state[name] = term_state
+    return state
+
+  def load_state_dict(self, state: dict[str, dict[str, Any]]) -> None:
+    """Restore terms with a load_state_dict hook by name.
+
+    Unknown names and terms without a load hook are ignored. Missing terms stay
+    unchanged. Terms handle device placement and configuration compatibility.
+    """
+    for name, cfg in zip(self._term_names, self._term_cfgs, strict=True):
+      load = getattr(cfg.func, "load_state_dict", None)
+      if name in state and callable(load):
+        load(state[name])
+
   def _prepare_terms(self):
     for term_name, term_cfg in self.cfg.items():
       term_cfg: CurriculumTermCfg | None
@@ -152,4 +178,10 @@ class NullCurriculumManager:
     return {}
 
   def compute(self, env_ids: torch.Tensor | None = None) -> None:
+    pass
+
+  def state_dict(self) -> dict[str, dict[str, Any]]:
+    return {}
+
+  def load_state_dict(self, state: dict[str, dict[str, Any]]) -> None:
     pass

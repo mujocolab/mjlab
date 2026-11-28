@@ -186,3 +186,41 @@ of tensors, or ``None``). A typical implementation reads a performance
 metric, decides whether to increase or decrease difficulty, mutates the
 relevant configuration in place, and returns the current difficulty
 level. See :ref:`env-config-term-pattern` for the general pattern.
+
+
+Checkpointing curriculum progress
+--------------------------------
+
+Configuration defines a curriculum's rules, such as promotion thresholds. A
+stateful curriculum also holds runtime progress, such as its current stage or
+moving success averages. Saving the configuration or training step counter alone
+does not preserve progress that depends on the policy's performance history.
+
+Class-based curriculum terms can implement ``state_dict()`` returning a dictionary
+of progress and ``load_state_dict(state)`` to restore it. Implementations choose
+which values to save, copy mutable values as needed, and handle device placement
+and configuration compatibility. If loading must also update environment parameters,
+the term should apply those updates when restoring its state.
+
+``CurriculumManager.state_dict()`` collects non-empty dictionaries from terms with
+a save hook. ``load_state_dict()`` restores matching terms with a load hook,
+ignoring removed terms and terms without hooks. Missing terms stay unchanged.
+Stateless functions need no changes. The returned metrics stored internally in
+``_curriculum_state`` are for reporting and are not automatically checkpointed.
+
+Training code must explicitly include the manager state in its checkpoints:
+
+.. code-block:: python
+
+    checkpoint["curriculum"] = env.curriculum_manager.state_dict()
+    # After loading into a newly constructed environment:
+    env.curriculum_manager.load_state_dict(checkpoint.get("curriculum", {}))
+
+The standard runner restores ``common_step_counter``, which lets step-based
+schedules recover their stage when evaluated again. It does not automatically
+save or restore the manager state above. The hooks also do not capture arbitrary
+state elsewhere in the environment, such as terrain levels; participating terms
+must explicitly include the progress they own.
+
+Curriculum progress owned by a command term can instead be checkpointed through
+``CommandManager``; see :ref:`commands`.

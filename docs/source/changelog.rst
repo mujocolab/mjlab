@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added optional ``state_dict()`` and ``load_state_dict()`` support to command and
+  curriculum managers so training code can checkpoint progress owned by custom
+  curriculum commands and stateful curriculum terms.
 - Added ``play --checkpoint-file latest`` to load the last checkpoint of the newest
   local run. Contribution by @Kaweees.
 - Added ``GridPatternCfg.offset`` to shift the ray grid in frame-local XY.
